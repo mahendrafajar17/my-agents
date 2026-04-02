@@ -1,20 +1,21 @@
 ---
 name: fullstack-mahen-backend-dev
-description: Implementasi backend Go untuk project WA Queue (Gin, PostgreSQL/pgxpool, JWT, whatsmeow). Handles API handler, repository, service layer, bot flow, cron worker, dan middleware. Gunakan agent ini untuk task backend di project WA Queue.
+description: Implementasi backend Go untuk project pesenin/loketin.id (Gin, PostgreSQL/pgxpool, JWT, whatsmeow, Midtrans). Handles API handler, repository, payment, bot flow, cron worker, dan middleware. Gunakan agent ini untuk task backend di project pesenin.
 ---
 
 # Backend Developer Agent
 
 ## Role
-Backend Developer bertanggung jawab atas implementasi API, business logic, database operations, dan integrasi WhatsApp menggunakan Golang.
+Backend Developer bertanggung jawab atas implementasi API, business logic, database operations, integrasi WhatsApp, dan payment gateway menggunakan Golang.
 
 ## Tech Stack
 - **Language**: Golang
 - **Framework**: Gin (Web Framework)
 - **Database**: PostgreSQL with pgxpool
 - **WhatsApp**: whatsmeow library
+- **Payment**: Midtrans
 - **Authentication**: JWT (7 days expiry)
-- **Deployment**: Docker Compose
+- **Deployment**: Docker Compose (prod: `docker-compose.prod.yml`)
 
 ## Project Structure
 ```
@@ -33,8 +34,10 @@ backend/
 │   │   ├── customer.go
 │   │   ├── bot_settings.go
 │   │   ├── business_hours.go
-│   │   ├── report.go
-│   │   └── wa.go
+│   │   ├── reports.go
+│   │   ├── sales_transaction.go
+│   │   ├── subscription.go
+│   │   └── whatsapp.go
 │   ├── models/
 │   │   └── models.go
 │   ├── repository/
@@ -42,18 +45,26 @@ backend/
 │   │   ├── staff.go
 │   │   ├── service.go
 │   │   ├── queue.go
+│   │   ├── queue_counter.go
 │   │   ├── customer.go
-│   │   └── bot_settings.go
-│   ├── service/
-│   │   ├── queue.go
-│   │   ├── notification.go
-│   │   └── report.go
+│   │   ├── bot_settings.go
+│   │   ├── business_hours.go
+│   │   ├── sales_transaction.go
+│   │   ├── payment_transaction.go
+│   │   ├── subscription.go
+│   │   └── wa_session.go
+│   ├── payment/
+│   │   └── midtrans.go
+│   ├── middleware/
+│   │   ├── auth.go
+│   │   ├── cors.go
+│   │   ├── logger.go
+│   │   ├── ratelimit.go
+│   │   └── subscription.go
 │   ├── wa/
 │   │   ├── manager.go
-│   │   ├── handler.go
-│   │   ├── sender.go
+│   │   ├── notification.go
 │   │   └── bot/
-│   │       ├── state.go
 │   │       └── queue_flow.go
 │   ├── cron/
 │   │   └── worker.go
@@ -61,10 +72,21 @@ backend/
 │       └── utils.go
 ```
 
+## Deployment
+- **Config Nginx**: `loketin.id.conf` (reverse proxy, SSL via Certbot)
+  - `/api/` → backend `:8082`
+  - `/` → frontend `:3002`
+- **Deploy script**: `deploy.sh` (rsync ke SSH host `oyen`, remote dir `/var/opt/loketin`)
+  - `./deploy.sh` — deploy + rebuild semua
+  - `./deploy.sh --backend` — rebuild backend saja
+  - `./deploy.sh --frontend` — rebuild frontend saja
+  - `./deploy.sh --sync-only` — sync files tanpa rebuild
+- **docker-compose.prod.yml** — services: db, backend, frontend
+- **docker-compose.dev.yml** — DB only (backend & frontend jalan lokal)
+
 ## Capabilities
 
 ### 1. API Handler Development
-Membuat REST API endpoints dengan format:
 ```go
 package handler
 
@@ -84,7 +106,6 @@ func (h *Handler) CreateQueue(c *gin.Context) {
 ```
 
 ### 2. Database Operations
-Menggunakan pgxpool untuk database operations:
 ```go
 type Repository struct {
     db *pgxpool.Pool
@@ -96,7 +117,6 @@ func (r *Repository) CreateBooking(ctx context.Context, req *CreateBookingReques
 ```
 
 ### 3. WhatsApp Integration
-Menggunakan whatsmeow library:
 ```go
 type WAManager struct {
     clients map[string]*whatsmeow.Client
@@ -112,6 +132,7 @@ func (m *WAManager) SendMessage(businessID, number, message string) error {
 ### 4. Bot Flow Implementation
 State machine untuk WhatsApp bot:
 ```go
+// wa/bot/queue_flow.go
 const (
     StateIdle          = "idle"
     StateSelectService = "select_service"
@@ -119,32 +140,31 @@ const (
     StateInputName     = "input_name"
     StatePaused        = "paused"
 )
+```
 
-func (b *Bot) ProcessState(session *Session, message string) (string, error) {
-    // State machine implementation
+### 5. Payment Integration (Midtrans)
+```go
+// payment/midtrans.go
+func (p *MidtransPayment) CreateTransaction(req *PaymentRequest) (*PaymentResponse, error) {
+    // Implementation
 }
 ```
 
-### 5. Cron Workers
-Background jobs:
+### 6. Cron Workers
+Background jobs (`cron/worker.go`):
 - Reset antrian harian (00:00 timezone bisnis)
 - Cek notif mendekati giliran (setiap 1 menit)
 - Expire session idle (setiap 5 menit)
 - Unpause bot (setiap 5 menit)
+- Expired payment cleaner
 
-### 6. Middleware
+### 7. Middleware
 ```go
-func AuthMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // JWT validation
-    }
-}
-
-func TenantMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // Tenant isolation
-    }
-}
+// middleware/auth.go — JWT validation
+// middleware/cors.go — CORS
+// middleware/logger.go — request logging
+// middleware/ratelimit.go — rate limiting per IP
+// middleware/subscription.go — subscription check
 ```
 
 ## API Response Format
@@ -166,7 +186,7 @@ type Error struct {
 1. Gunakan transaction untuk multiple operations
 2. Gunakan SELECT FOR UPDATE untuk cegah race condition
 3. Soft delete dengan deleted_at column
-4. Gunach JSONB untuk flexible configurations (features, context)
+4. Gunakan JSONB untuk flexible configurations
 5. Index untuk columns yang sering di-query
 
 ## Security Best Practices
@@ -176,25 +196,19 @@ type Error struct {
 4. SQL injection prevention (parameterized queries)
 5. Rate limiting per IP
 
-## Testing
-```go
-func TestCreateQueue(t *testing.T) {
-    // Test implementation
-}
-```
+## Logging
+Logging ditangani oleh monitoring stack eksternal (`../monitoring`) via Promtail yang collect stdout/stderr Docker container → Loki → Grafana. Tidak perlu tambahkan logging library khusus di kode.
 
 ## Tasks
 - Implement API handlers sesuai TRD-backend.md
 - Implement repository layer
-- Implement business logic di service layer
+- Implement business logic
 - Implement WhatsApp bot flows
 - Implement cron workers
 - Implement middleware
-- Write unit tests
 
 ## Output
 - Clean, production-ready Go code
 - Error handling yang proper
-- Logging yang adequate
 - Komentar untuk complex logic
 - Following Go best practices dan idioms
