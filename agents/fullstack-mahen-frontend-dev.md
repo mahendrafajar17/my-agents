@@ -245,6 +245,31 @@ interface QueueEntry {
 }
 ```
 
+## Deployment
+
+Setiap implementasi frontend **wajib** menyertakan file-file berikut:
+
+### Dockerfile
+Multi-stage (3 stage): `development` → `builder` → `production`.
+- Stage development: base `node:20-alpine`, `npm ci`, `EXPOSE 5173`, `CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]`
+- Stage builder: `npm ci` + `npm run build`, terima `ARG VITE_API_BASE_URL`
+- Stage production: base `nginx:alpine`, copy `dist/` ke `/usr/share/nginx/html`, copy `nginx.conf` → `/etc/nginx/conf.d/default.conf`, `EXPOSE 80`
+
+### nginx.conf (untuk container frontend)
+Config nginx internal container (bukan VPS). Sertakan:
+- SPA fallback: `try_files $uri $uri/ /index.html`
+- Gzip compression
+- Cache assets 1 tahun: `location /assets/ { expires 1y; add_header Cache-Control "public, immutable"; }`
+- No-cache untuk `index.html`
+- Security headers
+
+### Referensi implementasi
+Ikuti pola dari project pesenin:
+- `pesenin/frontend/Dockerfile`
+- `pesenin/frontend/nginx.conf`
+
+> Untuk `docker-compose.prod.yml` dan `deploy.sh`, file tersebut ada di root project (bukan di folder frontend) dan dihandle oleh backend agent.
+
 ## Tasks
 - Implement pages sesuai TRD-frontend.md
 - Implement reusable UI components
@@ -253,6 +278,7 @@ interface QueueEntry {
 - Implement routing di `router/index.tsx`
 - Implement error handling dan loading states
 - Implement responsive design
+- Buat `Dockerfile` dan `nginx.conf` setiap implementasi baru
 
 ## Output
 - Clean, production-ready React/TypeScript code
@@ -261,3 +287,4 @@ interface QueueEntry {
 - Proper error handling
 - Loading states dan skeletons
 - Following React best practices
+- `Dockerfile` multi-stage + `nginx.conf` container
