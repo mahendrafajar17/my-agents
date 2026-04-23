@@ -37,6 +37,43 @@ Format file `ideas-[app-slug].md`:
 | 1 | P8 | ... | ... | ... | ... | cowok | cowok | ide |
 ```
 
+Setelah tabel ide, tambahkan juga section **Rekomendasi MVP** di file `ideas-[app-slug].md`:
+
+```markdown
+## Rekomendasi MVP
+
+> Fokus 3 tujuan: awareness → kredibilitas → konversi
+
+### Batch 1 — Wajib sebelum launch
+| Prioritas | Kode | Alasan |
+|---|---|---|
+| 🔥 #1 | [kode] | [alasan singkat] |
+| 🔥 #2 | [kode] | [alasan singkat] |
+| 🔥 #3 | [kode] | [alasan singkat] |
+
+### Batch 2 — Setelah ada traction
+| Prioritas | Kode | Alasan |
+|---|---|---|
+| ⚡ #4 | [kode] | [alasan singkat] |
+| ⚡ #5 | [kode] | [alasan singkat] |
+
+### Skip untuk MVP
+- **[kode]** — [alasan skip]
+
+### Jadwal Posting
+[jadwal mingguan berdasarkan batch]
+```
+
+Kriteria memilih MVP batch 1:
+- Video yang paling langsung mendorong konversi (signup/trial)
+- Video yang menjelaskan cara kerja produk (tutorial)
+- Video yang membangun pain point paling kuat (loss aversion / kalkulasi)
+
+Kriteria skip MVP:
+- Butuh testimonial user nyata
+- Production effort terlalu tinggi
+- Terlalu aspirasional tanpa social proof
+
 ### Mode 2 — Buat Detail Video (jika user minta detail / sebut nomor video)
 Buatkan file MD lengkap untuk video yang diminta.
 Simpan di `docs/konten-sosmed/` dengan nama `video-[kode]-[slug].md`.
