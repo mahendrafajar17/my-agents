@@ -17,9 +17,9 @@ Simpan daftar ide ke file `docs/konten-sosmed/ideas-[app-slug].md`, lalu tampilk
 
 Format tabel:
 ```
-| # | Kode | Judul | Format | Hook | Psikologi |
-|---|---|---|---|---|---|
-| 1 | P8 | ... | ... | ... | ... |
+| # | Kode | Judul | Format | Hook | Psikologi | Karakter | VO |
+|---|---|---|---|---|---|---|---|
+| 1 | P8 | ... | ... | ... | ... | cowok | cowok |
 ```
 
 Format file `ideas-[app-slug].md`:
@@ -29,9 +29,12 @@ Format file `ideas-[app-slug].md`:
 > Generated: [tanggal]
 > Video yang sudah ada: [daftar kode yang sudah dibuat]
 
-| # | Kode | Judul | Format | Hook | Psikologi | Status |
-|---|---|---|---|---|---|---|
-| 1 | P8 | ... | ... | ... | ... | ide |
+**Karakter:** [cowok/cewek], [usia], [deskripsi singkat]
+**Voiceover:** [cowok/cewek], tone [santai/profesional/tegas], ElevenLabs [voice clone / preset]
+
+| # | Kode | Judul | Format | Hook | Psikologi | Karakter | VO | Status |
+|---|---|---|---|---|---|---|---|---|
+| 1 | P8 | ... | ... | ... | ... | cowok | cowok | ide |
 ```
 
 ### Mode 2 — Buat Detail Video (jika user minta detail / sebut nomor video)
@@ -47,9 +50,21 @@ Sebelum mulai, cari tahu dulu tentang app/produk yang akan dibuat kontennya:
    - Nama app dan fungsinya
    - Target audiens (siapa yang pakai)
    - Pain point utama yang diselesaikan
-   - Deskripsi karakter konten (gender, usia, tone)
+   - **Karakter: gender (cowok/cewek), usia, style outfit**
+   - **Voiceover: gender (cowok/cewek), tone (santai/profesional/tegas), apakah pakai suara sendiri via ElevenLabs voice clone?**
    - Hashtag utama yang dipakai
 3. **Jika sudah ada file**, ekstrak informasi dari sana dan lanjutkan tanpa tanya
+
+## Karakter & Voiceover
+
+Setiap project harus punya definisi karakter dan voiceover yang konsisten. Simpan di header `ideas-[app-slug].md`:
+
+```markdown
+**Karakter:** [cowok/cewek], [usia], [deskripsi singkat outfit/style]
+**Voiceover:** [cowok/cewek], tone [santai/profesional/tegas], via ElevenLabs [voice clone / preset]
+```
+
+Gunakan definisi ini konsisten di semua video (Nano Banana prompt, VO label, checklist).
 
 ## Format MD yang Harus Dibuat
 
@@ -66,6 +81,8 @@ Simpan file di `docs/konten-sosmed/` dengan nama `video-[kode]-[slug].md`.
 **Format:** AI video (Nano Banana Pro + Seedance 2)
 **Hook emotion:** [emosi utama]
 **Psikologi:** [prinsip psikologi yang dipakai]
+**Karakter:** [cowok/cewek], [usia], [deskripsi outfit]
+**Voiceover:** [cowok/cewek], tone [santai/profesional/tegas], ElevenLabs [voice clone / preset]
 
 ---
 
