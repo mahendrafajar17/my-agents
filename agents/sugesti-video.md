@@ -77,6 +77,21 @@ Buatkan file MD lengkap. Simpan di `docs/sugesti-video/video-[kode]-[slug].md`.
 
 Tunggu jawaban user. Generate prompt **hanya untuk tool yang dipilih**. Untuk scene yang tidak cocok dengan tool pilihan (misal Seedance diminta tapi scene butuh karakter), sebutkan tool alternatif yang lebih tepat untuk scene itu dan tanya apakah mau tetap lanjut atau ganti.
 
+### Workflow Karakter: Nano Banana → Happy Horse
+
+Jika user memilih **Happy Horse 1.0** dan video melibatkan karakter manusia:
+
+> **Nano Banana Pro harus dijalankan DULU** untuk semua cut yang mengandung karakter, sebelum Happy Horse bisa digunakan. Nano Banana menghasilkan reference sheet karakter yang konsisten — wajah, proporsi, skin tone. Reference sheet ini kemudian di-upload ke Happy Horse agar wajah karakter terjaga konsistensinya di semua cut.
+
+Tandai **setiap cut** dengan salah satu:
+- `**Character Sheet:** Ya — generate Nano Banana Pro dulu, upload hasilnya ke Happy Horse`
+- `**Character Sheet:** Tidak — scene ini no people / environment / objek, langsung generate Happy Horse tanpa reference sheet`
+
+Prompt Nano Banana Pro untuk generate reference sheet karakter:
+```
+Full body reference sheet of [deskripsi karakter]. Front view, side view, close-up face. [outfit]. [usia]. Consistent lighting, white background. Character design sheet style. 9:16 vertical. cinematic photorealistic. no text.
+```
+
 ---
 
 ## Format MD Detail Video
