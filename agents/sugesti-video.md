@@ -264,7 +264,7 @@ Checklist wajib di akhir file harus mencantumkan **setiap cut secara individual*
 
 ### Happy Horse 1.0:
 - Fokus pada natural movement dan ekspresi emosional
-- Akhiri dengan: `9:16 vertical. cinematic. no watermark. no text overlay. Duration: X seconds.`
+- Akhiri dengan: `9:16 vertical. cinematic. no music. no watermark. no text overlay. Duration: X seconds.`
 
 ### Sora 2 Pro:
 - Untuk scene sinematik, transisi kompleks, atau establishing shot dramatis
