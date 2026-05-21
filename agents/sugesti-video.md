@@ -117,9 +117,50 @@ Buatkan file MD lengkap. Simpan di `docs/sugesti-video/video-[kode]-[slug].md`.
 > - **Happy Horse 1.0** — gerakan natural, ekspresi emosional
 > - **Sora 2 Pro** — sinematik kompleks, transisi dinamis
 
+### Aturan Durasi Clip (WAJIB)
+
+**Semua AI video tool hanya bisa generate maksimal 15 detik per clip.**
+
+Jika sebuah scene lebih dari 15 detik, **pecah menjadi beberapa cut** dan tandai dengan suffix A, B, C, dst. Editor menggabungkan di post-production.
+
+Format penamaan cut:
+```
+### SCENE [N] — [nama] ([timestamp total]) | [total] dtk total → [jumlah] cut
+
+**Cut [N]A — [Tool] | [X] dtk ([timestamp cut ini])**
+[prompt]
+
+**Cut [N]B — [Tool] | [X] dtk ([timestamp cut ini])**
+[prompt]
+```
+
+Contoh scene 30 detik → 2 cut @15 dtk:
+```
+### SCENE 1 — Pain Point (0:05–0:35) | 30 dtk total → 2 cut
+
+**Cut 1A — Sora 2 Pro | 15 dtk (0:05–0:20)**
+[prompt... Duration: 15 seconds.]
+
+**Cut 1B — Sora 2 Pro | 15 dtk (0:20–0:35)**
+[prompt... Duration: 15 seconds.]
+```
+
+Untuk scene dengan intercut (2 angle berbeda), generate masing-masing angle sebagai cut terpisah dan tandai `(intercut editor)`:
+```
+**Cut 1C — Nano Banana Pro | 15 dtk (intercut editor, 0:05–0:20)**
+[prompt karakter...]
+```
+
+Checklist wajib di akhir file harus mencantumkan **setiap cut secara individual** (bukan per scene), contoh:
+```
+- [ ] SCENE 1 Cut 1A (15 dtk) — Sora 2 Pro, ruang tunggu
+- [ ] SCENE 1 Cut 1B (15 dtk) — Sora 2 Pro, close-up buku antrian
+- [ ] SCENE 1 Cut 1C (15 dtk) — Nano Banana, karakter agitasi (intercut)
+```
+
 ### Scene [N] — [nama scene] ([timestamp])
 **Tool:** [Nano Banana Pro / Seedance 2.0 / Happy Horse 1.0 / Sora 2 Pro]
-**Durasi:** [X] detik
+**Durasi:** [X] detik (jika ≤15 dtk, 1 clip — jika >15 dtk, pecah ke Cut A/B/C)
 **Character Sheet:** [Ya — upload reference sheet karakter / Tidak — no people]
 
 **Nano Banana Pro prompt:**
