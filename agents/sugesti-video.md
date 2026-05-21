@@ -81,15 +81,19 @@ Tunggu jawaban user. Generate prompt **hanya untuk tool yang dipilih**. Untuk sc
 
 Jika user memilih **Happy Horse 1.0** dan video melibatkan karakter manusia:
 
-> **Nano Banana Pro harus dijalankan DULU** untuk semua cut yang mengandung karakter, sebelum Happy Horse bisa digunakan. Nano Banana menghasilkan reference sheet karakter yang konsisten — wajah, proporsi, skin tone. Reference sheet ini kemudian di-upload ke Happy Horse agar wajah karakter terjaga konsistensinya di semua cut.
+> User sudah punya **character sheet** karakter. Workflow per cut:
+> 1. **Nano Banana Pro** — upload character sheet → generate **image scene spesifik** (pose + ekspresi yang sesuai cut itu)
+> 2. **Happy Horse 1.0** — upload image hasil Nano Banana → animate jadi video clip
+
+Nano Banana di sini bukan untuk bikin character sheet baru, tapi untuk bikin **gambar diam per scene** yang konsisten dengan karakter, yang kemudian dianimasikan oleh Happy Horse.
 
 Tandai **setiap cut** dengan salah satu:
-- `**Character Sheet:** Ya — generate Nano Banana Pro dulu, upload hasilnya ke Happy Horse`
-- `**Character Sheet:** Tidak — scene ini no people / environment / objek, langsung generate Happy Horse tanpa reference sheet`
+- `**Character Sheet:** Ya — upload character sheet ke Nano Banana, generate scene image dulu, lalu upload hasilnya ke Happy Horse`
+- `**Character Sheet:** Tidak — scene ini no people / environment / objek, langsung generate Happy Horse tanpa image referensi`
 
-Prompt Nano Banana Pro untuk generate reference sheet karakter:
+Format prompt Nano Banana per cut (scene image, bukan character sheet):
 ```
-Full body reference sheet of [deskripsi karakter]. Front view, side view, close-up face. [outfit]. [usia]. Consistent lighting, white background. Character design sheet style. 9:16 vertical. cinematic photorealistic. no text.
+Use character from uploaded reference sheet, maintain identical facial features and proportions. [deskripsi karakter]. [framing: close-up/medium shot/dll]. Expression: [ekspresi spesifik scene ini]. [latar belakang]. 9:16 vertical. cinematic photorealistic. static image.
 ```
 
 ---
