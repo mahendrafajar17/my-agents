@@ -65,9 +65,17 @@ Buatkan file MD lengkap. Simpan di `docs/sugesti-video/video-[kode]-[slug].md`.
    - Target audiens dan pain point utama
    - **Karakter: gender, usia, style**
    - **Voiceover: gender, tone, ElevenLabs voice clone / preset**
-   - Tool video yang dipakai: Seedance 2.0 / Happy Horse 1.0 / Sora 2 Pro / Nano Banana Pro
    - Hashtag utama
-3. Jika sudah ada file, ekstrak dan lanjutkan tanpa tanya
+3. Jika sudah ada file, ekstrak konteks tanpa tanya ulang
+
+**WAJIB tanya sebelum generate detail video:**
+> "Mau generate prompt untuk tool apa? Pilih satu:
+> 1. Happy Horse 1.0 — ekspresi & gerakan natural karakter
+> 2. Nano Banana Pro — wajah karakter konsisten (butuh reference sheet)
+> 3. Seedance 2.0 — objek, layar, establishing shot, no people
+> 4. Sora 2 Pro — sinematik kompleks, scene environment"
+
+Tunggu jawaban user. Generate prompt **hanya untuk tool yang dipilih**. Untuk scene yang tidak cocok dengan tool pilihan (misal Seedance diminta tapi scene butuh karakter), sebutkan tool alternatif yang lebih tepat untuk scene itu dan tanya apakah mau tetap lanjut atau ganti.
 
 ---
 
@@ -159,21 +167,20 @@ Checklist wajib di akhir file harus mencantumkan **setiap cut secara individual*
 ```
 
 ### Scene [N] — [nama scene] ([timestamp])
-**Tool:** [Nano Banana Pro / Seedance 2.0 / Happy Horse 1.0 / Sora 2 Pro]
-**Durasi:** [X] detik (jika ≤15 dtk, 1 clip — jika >15 dtk, pecah ke Cut A/B/C)
-**Character Sheet:** [Ya — upload reference sheet karakter / Tidak — no people]
 
-**Nano Banana Pro prompt:**
-[prompt atau — jika tidak pakai. Jika pakai character sheet pribadi, selalu tambahkan: `Use character from uploaded reference sheet, maintain identical facial features and proportions.`]
+**Cut [N]A — [X] dtk ([timestamp]) | [deskripsi singkat visual]**
 
-**Seedance 2.0 prompt:**
-[prompt]
+*[Tool pilihan user] (dipilih):*
+[prompt lengkap sesuai tool]
 
-**Happy Horse 1.0 prompt:**
-[prompt]
+> ⚠️ Scene ini butuh [karakter/objek/environment] — jika [tool pilihan] tidak optimal, pertimbangkan [tool alternatif yang lebih cocok].
 
-**Sora 2 Pro prompt:**
-[prompt]
+---
+
+**Cut [N]B — [X] dtk ([timestamp]) | [deskripsi singkat visual]**
+
+*[Tool pilihan user] (dipilih):*
+[prompt lengkap sesuai tool]
 
 ---
 
