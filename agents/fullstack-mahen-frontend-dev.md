@@ -1,6 +1,6 @@
 ---
+name: fullstack-mahen-frontend-dev
 description: Implementasi frontend React/TypeScript untuk project pesenin/loketin.id (Vite, Zustand, React Query, Tailwind, React Router v7). Handles pages, components, state management, data fetching, dan routing. Gunakan agent ini untuk task frontend di project pesenin.
-mode: subagent
 ---
 
 # Frontend Developer Agent
@@ -101,6 +101,7 @@ export const Component: React.FC<Props> = (props) => {
 
 ### 2. State Management dengan Zustand
 ```typescript
+// stores/authStore.ts
 interface AuthStore {
   token: string | null
   business: Business | null
@@ -137,10 +138,21 @@ export const useQueueToday = (filters?: QueueFilters) => {
     refetchInterval: 10000
   })
 }
+
+export const useNextQueue = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => queueService.next(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] })
+    }
+  })
+}
 ```
 
 ### 4. API Services dengan Axios
 ```typescript
+// services/api.ts
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   timeout: 10000
@@ -151,14 +163,86 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response?.status === 401) {
+      useAuthStore.getState().logout()
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
 ```
 
 ### 5. Routing dengan React Router v7
 ```tsx
+// router/index.tsx
 const router = createBrowserRouter([
-  { path: '/', element: <DashboardLayout />, children: [...] },
+  {
+    path: '/',
+    element: <DashboardLayout />,
+    children: [
+      { index: true, element: <Navigate to="/dashboard" /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'queue', element: <QueuePage /> },
+      { path: 'transactions', element: <TransactionsPage /> },
+      { path: 'subscription', element: <SubscriptionPage /> },
+      // ...
+    ]
+  },
   { path: '/login', element: <LoginPage /> }
 ])
+```
+
+### 6. Context (Dialog)
+```tsx
+// contexts/DialogContext.tsx
+// Global dialog/confirm context untuk reusable confirmation dialogs
+```
+
+### 7. Error Handling & Utils
+```typescript
+// utils/apiError.ts — parse error dari API response
+// utils/statusTranslator.ts — terjemahkan status code ke label Indonesia
+```
+
+### 8. UI dengan Tailwind (mobile-first)
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  {/* Stats cards */}
+</div>
+```
+
+## Types Definition
+```typescript
+// types/index.ts
+interface Business {
+  id: string
+  name: string
+  owner_name: string
+  email: string
+  wa_number: string | null
+  wa_status: 'disconnected' | 'connecting' | 'connected'
+  features: BusinessFeatures
+  timezone: string
+}
+
+interface QueueEntry {
+  id: string
+  booking_code: string
+  queue_number: number
+  queue_date: string
+  customer_name: string
+  wa_number: string
+  service_name: string
+  staff_name: string | null
+  status: 'waiting' | 'serving' | 'done' | 'cancelled' | 'expired'
+  called_at: string | null
+  done_at: string | null
+  created_at: string
+}
 ```
 
 ## Deployment
@@ -178,6 +262,13 @@ Config nginx internal container (bukan VPS). Sertakan:
 - Cache assets 1 tahun: `location /assets/ { expires 1y; add_header Cache-Control "public, immutable"; }`
 - No-cache untuk `index.html`
 - Security headers
+
+### Referensi implementasi
+Ikuti pola dari project pesenin:
+- `pesenin/frontend/Dockerfile`
+- `pesenin/frontend/nginx.conf`
+
+> Untuk `docker-compose.prod.yml` dan `deploy.sh`, file tersebut ada di root project (bukan di folder frontend) dan dihandle oleh backend agent.
 
 ## Tasks
 - Implement pages sesuai TRD-frontend.md

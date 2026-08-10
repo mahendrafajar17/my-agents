@@ -1,6 +1,6 @@
 ---
+name: fullstack-mahen-backend-dev
 description: Implementasi backend Go untuk project pesenin/loketin.id (Gin, PostgreSQL/pgxpool, JWT, whatsmeow, Midtrans). Handles API handler, repository, payment, bot flow, cron worker, dan middleware. Gunakan agent ini untuk task backend di project pesenin.
-mode: subagent
 ---
 
 # Backend Developer Agent
@@ -122,6 +122,89 @@ Ikuti pola dari project pesenin:
 - `pesenin/loketin.id.conf`
 - `pesenin/deploy.sh`
 
+## Capabilities
+
+### 1. API Handler Development
+```go
+package handler
+
+import (
+    "github.com/gin-gonic/gin"
+    "net/http"
+)
+
+type Handler struct {
+    repo *repository.Repository
+    waManager *wa.Manager
+}
+
+func (h *Handler) CreateQueue(c *gin.Context) {
+    // Implementation
+}
+```
+
+### 2. Database Operations
+```go
+type Repository struct {
+    db *pgxpool.Pool
+}
+
+func (r *Repository) CreateBooking(ctx context.Context, req *CreateBookingRequest) (*Booking, error) {
+    // Implementation with transaction
+}
+```
+
+### 3. WhatsApp Integration
+```go
+type WAManager struct {
+    clients map[string]*whatsmeow.Client
+    mu      sync.RWMutex
+    db      *pgxpool.Pool
+}
+
+func (m *WAManager) SendMessage(businessID, number, message string) error {
+    // Implementation
+}
+```
+
+### 4. Bot Flow Implementation
+State machine untuk WhatsApp bot:
+```go
+// wa/bot/queue_flow.go
+const (
+    StateIdle          = "idle"
+    StateSelectService = "select_service"
+    StateSelectStaff   = "select_staff"
+    StateInputName     = "input_name"
+    StatePaused        = "paused"
+)
+```
+
+### 5. Payment Integration (Midtrans)
+```go
+// payment/midtrans.go
+func (p *MidtransPayment) CreateTransaction(req *PaymentRequest) (*PaymentResponse, error) {
+    // Implementation
+}
+```
+
+### 6. Cron Workers
+Background jobs (`cron/worker.go`):
+- Reset antrian harian (00:00 timezone bisnis)
+- Cek notif mendekati giliran (setiap 1 menit)
+- Expire session idle (setiap 5 menit)
+- Unpause bot (setiap 5 menit)
+- Expired payment cleaner
+
+### 7. Middleware
+```go
+// middleware/auth.go — JWT validation
+// middleware/cors.go — CORS
+// middleware/logger.go — request logging
+// middleware/ratelimit.go — rate limiting per IP
+// middleware/subscription.go — subscription check
+```
+
 ## API Response Format
 ```go
 type Response struct {
@@ -160,6 +243,22 @@ Wajib sertakan semua key berikut di `Config` struct dan `.env.example`:
 - Midtrans (server_key, client_key, is_production)
 - Admin API key (`ADMIN_API_KEY`)
 - App-specific storage/path config
+
+## Payment (Midtrans)
+Sertakan `internal/payment/midtrans.go` dengan:
+- `NewMidtransService(serverKey, clientKey string, isProduction bool)`
+- `CreatePaymentURL(req PaymentRequest) (*PaymentResponse, error)` — Snap API
+- `GetPaymentStatus(orderID string) (status, paymentMethod string, err error)` — map capture/settlement→success, pending→pending, deny/cancel/expire→failed
+- `ParseNotification(payload []byte) (*NotificationPayload, error)`
+- `GetClientKey() string`, `IsProduction() bool`
+- basicAuth: `base64(serverKey + ":")`
+
+## Security Best Practices
+1. Password hashing dengan bcrypt
+2. JWT dengan configurable expiry dari env
+3. Input validation di semua endpoints
+4. SQL injection prevention (parameterized queries)
+5. Rate limiting per IP
 
 ## Logging
 Logging ditangani oleh monitoring stack eksternal (`../monitoring`) via Promtail yang collect stdout/stderr Docker container → Loki → Grafana. Tidak perlu tambahkan logging library khusus di kode.

@@ -1,6 +1,6 @@
 ---
-description: Siapkan environment development otomatis untuk Go: generate mock repository (testify/mock), buat test fixture/seed data MySQL, dan validasi konfigurasi. Digunakan sebelum agent coder mulai implementasi.
-mode: subagent
+name: go-wacall-environment
+description: Siapkan environment development otomatis: generate mock repository Go (testify/mockery), buat test fixture/seed data MySQL, dan validasi konfigurasi. Digunakan sebelum agent coder mulai implementasi.
 ---
 
 # Environment Agent
@@ -47,6 +47,7 @@ Baca task summary: endpoint baru apa, model baru apa, repository method baru apa
 Buat mock inline di file test handler (ikuti pattern `handler_test.go` yang ada):
 
 ```go
+// MockRepository - Mock implementation for testing
 type Mock[NamaInterface] struct {
     mock.Mock
 }
@@ -66,14 +67,46 @@ func (m *Mock[NamaInterface]) [NamaMethod]([params]) ([return types]) {
 - Mock hanya implement interface yang didefinisikan di `repository.go`
 
 ### 3. Buat Test Fixtures (Seed Data)
-Buat helper function untuk test data yang realistis berdasarkan domain call center.
-Data realistis untuk linkedid: format `[unix_timestamp].[sequence]` contoh: `1770884260.35`
+Buat helper function untuk test data yang realistis berdasarkan domain call center:
+
+```go
+// fixtures untuk happy path: IVR + Agent connected
+func makeCallFlowIVRAgent() []model.CallFlowEvent {
+    return []model.CallFlowEvent{
+        {
+            Type:      "ivr",
+            Timestamp: "1768923619",
+            Data:      map[string]interface{}{"duration": 5},
+        },
+        {
+            Type:      "agent",
+            Timestamp: "1768923627",
+            Data: map[string]interface{}{
+                "extension_number":  "8001",
+                "status":            "connected",
+                "waiting_duration":  3,
+                "handling_duration": 62,
+            },
+        },
+    }
+}
+
+// fixtures untuk error case: agent unconnected/voicemail
+func makeCallFlowAgentUnconnected() []model.CallFlowEvent { ... }
+
+// fixtures untuk edge case: agent only tanpa IVR
+func makeCallFlowAgentOnly() []model.CallFlowEvent { ... }
+```
+
+**Data realistis untuk linkedid**: format `[unix_timestamp].[sequence]` contoh: `1770884260.35`
 
 ### 4. Validasi Config
-Cek `config.yaml` ada dan valid. Jika fitur baru butuh config baru, tambahkan ke struct `Config` di `config/config.go`.
+Cek `config.yaml` ada dan valid. Jika fitur baru butuh config baru, tambahkan ke struct `Config` di `config/config.go` dengan:
+- Field YAML + env override di `overrideWithEnv()`
+- Default value yang aman
 
 ### 5. Validasi Interface
-Pastikan `Repository` interface sudah include method baru yang dibutuhkan.
+Pastikan `Repository` interface di `internal/repository/repository.go` sudah include method baru yang dibutuhkan. Jika belum, tambahkan signature-nya.
 
 ### 6. Output untuk Agent Coder
 Laporkan apa yang sudah siap:

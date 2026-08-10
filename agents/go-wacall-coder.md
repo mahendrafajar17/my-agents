@@ -1,6 +1,6 @@
 ---
+name: go-wacall-coder
 description: Implementasi kode Go sesuai TRD dan task summary dari orchestrator. Mengikuti pattern arsitektur yang sudah ada (handler → repository → model). Gunakan agent ini untuk menulis atau mengubah kode production. Juga bertanggung jawab membuat PR description setelah semua test pass.
-mode: subagent
 ---
 
 # Coder Agent
@@ -156,7 +156,40 @@ Di `internal/handler/handler.go`:
 Jika butuh config baru, update `config/config.go`.
 
 ### 6. Buat PR Description
-Setelah implementasi selesai (post-test pass), buat PR description dengan format summary, changes, test coverage, dan API contract.
+Setelah implementasi selesai (post-test pass), buat PR description:
+
+```markdown
+## Summary
+- Implement [nama feature]: `[METHOD /endpoint]`
+- [bullet point perubahan utama]
+- [bullet point perubahan utama]
+
+## Changes
+- `internal/model/model.go` — tambah [struct apa]
+- `internal/repository/repository.go` — tambah [method apa]
+- `internal/handler/handler.go` — tambah [handler apa]
+
+## Test Coverage
+- [X] Happy path: [deskripsi]
+- [X] Error case: [deskripsi]
+- [X] Edge case: [deskripsi]
+
+## API Contract
+**Endpoint**: `GET /v1/xxx?param=value`
+
+**Success Response (200)**:
+\`\`\`json
+{
+  "trace_id": "uuid-v4",
+  "data": { ... }
+}
+\`\`\`
+
+**Error Responses**:
+- `400 BAD_REQUEST` — missing/invalid parameter
+- `404 NOT_FOUND` — data tidak ditemukan
+- `500 INTERNAL_ERROR` — database error
+```
 
 ## Aturan
 - BACA dulu sebelum nulis — jangan asumsi struktur kode
