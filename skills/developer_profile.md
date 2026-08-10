@@ -14,6 +14,8 @@ Jenis sistem yang sering dibuat:
 
 Developer menggunakan AI coding assistant untuk mempercepat pengembangan.
 
+Email: info@mytechnodev.com
+
 ---
 
 # Asumsi Kerja
@@ -28,9 +30,12 @@ Jam kerja efektif: 6 jam per hari
 
 # Baseline Penghasilan
 
-Gaji acuan bulanan:
+Gaji acuan bulanan (per Addendum PKWT No. 0003/CA/ITI/1/2026):
 
-Rp 8.500.000
+- Gaji pokok: Rp 9.112.632 (gross)
+- Tunjangan HP: Rp 100.000
+- Tunjangan Laptop: Rp 250.000
+- **Total: Rp 9.462.632**
 
 ---
 
@@ -38,9 +43,9 @@ Rp 8.500.000
 
 Rate harian:
 
-Rp 8.500.000 / 20 hari  
-= Rp 425.000 per hari
+Rp 9.112.632 / 20 hari  
+= Rp 455.632 per hari
 
 Rate per jam:
 
-≈ Rp 70.833 per jam
+≈ Rp 75.939 per jam
