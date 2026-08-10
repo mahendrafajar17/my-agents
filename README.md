@@ -1,69 +1,60 @@
-# my-agents
+# My Agents
 
-Koleksi custom Claude agents dan commands untuk development workflow.
+Koleksi agents, skills, dan commands untuk OpenCode dan Claude Code.
 
-## Struktur
-
-```
-agents/      → Agent definitions (.md)
-commands/    → Slash commands (.md)
-```
-
----
-
-## Pipelines
-
-### `/go-wacall` — Go Microservice Pipeline
-
-Pipeline multi-agent untuk development **Go microservice** (Gin + MySQL/sqlx + zap).
-Dari TRD sampai PR-ready code dengan test otomatis.
+## Structure
 
 ```
-orchestrator → environment → coder → tester → reviewer
+my-agents/
+├── opencode/        # Agents & skills untuk OpenCode
+│   ├── agents/      # 16 agents (go-wacall, fullstack-mahen, dll)
+│   └── skills/      # 9 skills (crd-gen, e2e-gen, sonarqube-gate, dll)
+├── claude/          # Agents & skills untuk Claude Code
+│   ├── agents/
+│   └── skills/
+├── commands/        # Custom commands (shared)
+├── docs/            # Documentation
+└── migrations/      # DB migrations
 ```
 
-| Agent | Tugas |
-|-------|-------|
-| `go-wacall-orchestrator` | Parse TRD, buat task summary |
-| `go-wacall-environment` | Setup mock, fixtures, validasi interface |
-| `go-wacall-coder` | Implementasi model, repository, handler |
-| `go-wacall-tester` | Tulis & jalankan unit test |
-| `go-wacall-reviewer` | Analisa hasil test, loop fix jika gagal |
+## Agents
 
-**Cara pakai:**
-```
-/go-wacall <TRD kamu di sini>
-```
+### OpenCode
+| Agent | Purpose |
+|----|----|
+| `go-wacall` | Pipeline Go microservice (orchestrator → coder → tester → reviewer) |
+| `fullstack-mahen` | Pipeline fullstack (team-lead → backend-dev → frontend-dev) |
+| `fullstack-mahen-mobile-dev` | Flutter mobile development |
+| `mirai-reconciliation` | Rekonsiliasi rekening koran vs database |
+| `ide-konten` | Generate ide konten social media |
+| `kata-sugesti` | NLP Ericksonian kata sugesti Bahasa Indonesia |
+| `konten-sosmed` | Generate script video konten TikTok/Reels |
+| `sugesti-video` | Video konten dengan kata sugesti NLP |
 
----
+### Claude Code
+| Agent | Purpose |
+|----|----|
+| `jatis-mahen` | Pipeline Java Spring Boot |
+| `pm` | Project management |
 
-### `/fullstack-mahen` — Fullstack WA Queue Pipeline
+## Skills
 
-Pipeline multi-agent untuk development **Go backend + React frontend** (WA Queue project).
-Dari TRD sampai PR-ready code, orkestrasi otomatis.
+| Skill | Platform | Purpose |
+|----|----|----|
+| `crd-gen` | OpenCode | Generate CRD.txt, CONFIG.md, VERSION.md untuk deployment |
+| `e2e-gen` | OpenCode | Generate E2E test automation + UAT docs |
+| `sonarqube-gate` | OpenCode | Autonomous SonarQube Quality Gate fix |
+| `developer-profile` | OpenCode | Profil developer freelance + estimasi |
+| `pricing-rules` | OpenCode | Aturan pricing komersial |
+| `rab-structure` | OpenCode | Struktur RAB proyek |
+| `infrastructure-cost` | OpenCode | Biaya infrastruktur standar |
+| `bofis-gen` | OpenCode | Generate BOFIS document |
+| `pb-entry` | OpenCode | Generate PB entry document |
 
-```
-team-lead → backend-dev dan/atau frontend-dev
-```
-
-| Agent | Tugas |
-|-------|-------|
-| `fullstack-mahen-team-lead` | Buat TRD lengkap (arsitektur, API spec, UI spec) |
-| `fullstack-mahen-backend-dev` | Implementasi Go backend (Gin, PostgreSQL, JWT, whatsmeow) |
-| `fullstack-mahen-frontend-dev` | Implementasi React frontend (Vite, Zustand, React Query, Tailwind) |
-
-**Cara pakai:**
-```
-/fullstack-mahen <deskripsi fitur kamu di sini>
-```
-
----
-
-## Setup
-
-Copy agents dan commands ke Claude workspace:
+## Sync
 
 ```bash
-cp agents/* ~/.claude/agents/
-cp commands/* ~/.claude/commands/
+# Dari OpenCode config ke repo
+cp -r ~/.config/opencode/agents/* opencode/agents/
+cp -r ~/.config/opencode/skills/* opencode/skills/
 ```
