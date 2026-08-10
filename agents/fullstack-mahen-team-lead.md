@@ -1,6 +1,6 @@
 ---
-name: fullstack-mahen-team-lead
 description: Buat TRD (Technical Requirement Document) lengkap untuk fitur baru project pesenin/loketin.id. Menghasilkan TRD.md (arsitektur), TRD-backend.md (API spec), dan TRD-frontend.md (pages & components). Gunakan agent ini pertama kali sebelum backend-dev atau frontend-dev mulai implementasi.
+mode: subagent
 ---
 
 # Team Lead Agent

@@ -1,6 +1,6 @@
 ---
-name: go-wacall-orchestrator
-description: Titik masuk pipeline multi-agent. Terima TRD dari dev, urai menjadi task terstruktur, buat ringkasan untuk checkpoint dev, lalu delegasikan ke agent selanjutnya (environment → coder → tester → reviewer). Gunakan agent ini pertama kali setiap memulai task baru dari TRD.
+description: Titik masuk pipeline multi-agent Go. Terima TRD dari dev, urai menjadi task terstruktur, buat ringkasan untuk checkpoint dev, lalu delegasikan ke agent selanjutnya (environment → coder → tester → reviewer). Gunakan agent ini pertama kali setiap memulai task baru dari TRD.
+mode: subagent
 ---
 
 # Orchestrator Agent
@@ -69,7 +69,6 @@ Apakah summary ini sudah benar? (ketik 'lanjut' untuk mulai pipeline)
 
 ### 3. Jalankan Pipeline (setelah dev konfirmasi)
 Delegasikan secara berurutan:
-
 1. **Agent Environment** — siapkan mock MySQL + Docker
 2. **Agent Coder** — implementasi code sesuai task summary
 3. **Agent Tester** — jalankan test suite
