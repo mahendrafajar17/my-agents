@@ -1,6 +1,6 @@
 ---
+name: fullstack-mahen-mobile-dev
 description: Implementasi Flutter mobile app untuk project Lokasir (Flutter, BLoC, SQLite/sqflite, Dio, go_router, offline-first). Handles pages, components, state management (BLoC), local database, background sync, dan routing. Gunakan agent ini untuk task mobile di project Lokasir.
-mode: subagent
 ---
 
 # Mobile Developer Agent
@@ -108,6 +108,89 @@ Events : SyncTriggered, SyncCompleted, SyncFailed
 ```
 States : ConnectivityOnline, ConnectivityOffline
 ```
+
+## SQLite Schema
+
+### user_session
+```sql
+CREATE TABLE IF NOT EXISTS user_session (
+    id                TEXT PRIMARY KEY,
+    username          TEXT NOT NULL,
+    full_name         TEXT NOT NULL,
+    role              TEXT NOT NULL,
+    outlet_id         TEXT NOT NULL,
+    outlet_name       TEXT NOT NULL,
+    last_login_at     INTEGER NOT NULL,
+    last_validated_at INTEGER,
+    session_id        TEXT NOT NULL
+);
+```
+
+### products
+```sql
+CREATE TABLE IF NOT EXISTS products (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT,
+    price       REAL NOT NULL,
+    category    TEXT,
+    image_url   TEXT,
+    is_active   INTEGER NOT NULL DEFAULT 1,
+    updated_at  TEXT NOT NULL
+);
+```
+
+### transactions
+```sql
+CREATE TABLE IF NOT EXISTS transactions (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL,
+    outlet_id       TEXT NOT NULL,
+    total_amount    REAL NOT NULL,
+    payment_method  TEXT NOT NULL,
+    payment_amount  REAL,
+    change_amount   REAL,
+    notes           TEXT,
+    created_at      TEXT NOT NULL,
+    is_synced       INTEGER NOT NULL DEFAULT 0
+);
+```
+
+### transaction_items
+```sql
+CREATE TABLE IF NOT EXISTS transaction_items (
+    id              TEXT PRIMARY KEY,
+    transaction_id  TEXT NOT NULL REFERENCES transactions(id),
+    product_id      TEXT NOT NULL,
+    product_name    TEXT NOT NULL,
+    product_price   REAL NOT NULL,
+    quantity        INTEGER NOT NULL,
+    subtotal        REAL NOT NULL
+);
+```
+
+### sync_queue
+```sql
+CREATE TABLE IF NOT EXISTS sync_queue (
+    id                TEXT PRIMARY KEY,
+    status            TEXT NOT NULL DEFAULT 'pending',
+    retry_count       INTEGER NOT NULL DEFAULT 0,
+    last_attempted_at TEXT,
+    error_message     TEXT
+);
+```
+
+## Routing (go_router)
+```dart
+GoRoute(path: '/',                     builder: SplashPage)
+GoRoute(path: '/login',                builder: LoginPage)
+GoRoute(path: '/pos',                  builder: POSPage,
+  routes: [GoRoute(path: 'checkout',   builder: CheckoutPage)])
+GoRoute(path: '/transactions/today',   builder: TodayTransactionsPage)
+GoRoute(path: '/reports/history',      builder: HistoryReportPage)
+```
+
+Guard: redirect ke `/login` jika route protected dan `AuthBloc` bukan `AuthAuthenticated`.
 
 ## Offline-First Rules
 - Semua transaksi tulis ke SQLite dulu, tidak ada yang diblokir karena offline

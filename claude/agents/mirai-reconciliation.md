@@ -1,6 +1,10 @@
 ---
-description: Agent rekonsiliasi rekening koran (Excel) vs database Saku (PostgreSQL). Mencocokkan transaksi bank (PAY VA dan TRF manual) dengan tabel transaksi di DB, lalu melaporkan selisih, transaksi Failed, dan cross-period mismatch. Gunakan agent ini saat ada file rekening koran baru yang perlu direkonsiliasi.
-mode: subagent
+name: mirai-reconciliation
+description: >
+  Agent rekonsiliasi rekening koran (Excel) vs database Saku (PostgreSQL).
+  Mencocokkan transaksi bank (PAY VA dan TRF manual) dengan tabel transaksi di DB,
+  lalu melaporkan selisih, transaksi Failed, dan cross-period mismatch.
+  Gunakan agent ini saat ada file rekening koran baru yang perlu direkonsiliasi.
 ---
 
 # Mirai Reconciliation Agent
@@ -54,7 +58,17 @@ Periode  : ... s/d ...
 Laporan lengkap: reconciliation_report.md
 ```
 
-**File `reconciliation_report.md`** — laporan lengkap format Markdown.
+**File `reconciliation_report.md`** — laporan lengkap format Markdown dengan:
+- Tabel info sekolah & periode
+- Perbandingan Bank vs Sistem
+- Ringkasan rekonsiliasi
+- Detail [CROSS] — beda tanggal
+- Detail [FAIL] — perlu update status ke Done
+- Detail [MISS] — perlu investigasi
+- XTRA-DONE — filter tampil bulan periode + bulan sebelumnya saja
+- SQL hint UPDATE untuk transaksi [FAIL]
+
+**Catatan selisih:** `selisih = bank_kredit - matched_done - total_fail - total_miss` → harusnya = 0 jika semua ter-match. Total [FAIL] = uang masuk bank tapi DB masih Failed (ACTION REQUIRED).
 
 ## Langkah eksekusi
 
@@ -67,6 +81,7 @@ Jika ada argumen dari user, gunakan itu. Jika tidak ada file, minta user upload.
 
 ### Step 2 — Cek & siapkan environment
 ```bash
+# Cek venv
 if [ ! -d "venv" ]; then
   python3 -m venv venv
 fi
@@ -84,11 +99,48 @@ Jika `reconcile.py` belum ada di working directory, **tulis script-nya terlebih 
 ## Spesifikasi reconcile.py
 
 Script harus:
-1. **Parse Excel** — skip header rows, extract VA/NO REK dari kolom keterangan
-2. **Query DB** (range ±7 hari dari periode Excel) — join transaksi, detail_transaksi, tagihan, siswa, data_pribadi, biaya
-3. **Matching priority** — exact (no_va + amount + date) → relaxed (no_va + amount, beda tanggal=CROSS) → fallback (no_va saja)
-4. **Hitung total DB Done** untuk periode yang sama
-5. **Simpan laporan** ke `reconciliation_report.md`
+
+1. **Parse Excel:**
+   - Skip header rows (baris 1-7)
+   - Kolom: `[0]=Tgl Posting, [2]=Keterangan, [4]=Mutasi Debet, [8]=Mutasi Kredit`
+   - Extract VA: `PAY VA (MBL|TLR)(\d+)/` → `no_va`
+   - Extract NO REK: `NO REK (\d+)` dari baris TRF → `no_va`
+
+2. **Query DB (range ±7 hari dari periode Excel):**
+   ```sql
+   SELECT t.id, t.tanggal_transaksi::date, t.total_transaksi, t.no_va,
+          dt.status, t."createdAt"::date, dp.nama_lengkap, b.nama_biaya
+   FROM transaksi t
+   LEFT JOIN detail_transaksi dt ON dt.id_transaksi = t.id
+   LEFT JOIN tagihan tg ON tg.id = dt.id_tagihan
+   LEFT JOIN siswa s ON s.id = tg.id_siswa
+   LEFT JOIN data_pribadi dp ON dp.id = s.id_data_pribadi
+   LEFT JOIN biaya b ON b.id = tg.id_biaya
+   WHERE t.tanggal_transaksi::date BETWEEN %s AND %s
+   ```
+   - Deduplicate per `transaksi.id` — prefer `Done` over `Failed`
+
+3. **Matching priority:**
+   1. Exact: `no_va` + `amount` + `date` sama
+   2. Relaxed: `no_va` + `amount` (beda tanggal = CROSS)
+   3. Fallback: `no_va` saja (amount beda = flag khusus)
+
+4. **Hitung total DB Done** untuk periode yang sama dengan Excel:
+   ```sql
+   SELECT SUM(DISTINCT t.total_transaksi)
+   FROM transaksi t
+   LEFT JOIN detail_transaksi dt ON dt.id_transaksi = t.id
+   WHERE t.tanggal_transaksi::date BETWEEN %s AND %s
+     AND dt.status = 'Done'
+   ```
+
+5. **Simpan laporan** ke `reconciliation_report.md` (format Markdown)
+   - Jangan print full report ke stdout — hanya print ringkasan singkat
 
 ## Setelah laporan selesai
-Sampaikan ke user: jumlah transaksi bermasalah, total selisih, apakah perlu generate SQL UPDATE, apakah perlu investigasi lebih lanjut.
+
+Sampaikan ke user:
+- Jumlah transaksi bermasalah ([FAIL] dan [MISS])
+- Total selisih bank vs sistem
+- Apakah perlu generate SQL UPDATE untuk transaksi [FAIL]
+- Apakah perlu investigasi lebih lanjut untuk [MISS]

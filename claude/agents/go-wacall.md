@@ -1,6 +1,6 @@
 ---
-description: Pipeline lengkap multi-agent untuk development Go microservice (Gin, MySQL/sqlx, zap). Dari TRD sampai PR-ready code dengan test otomatis. Orkestrasi orchestrator → environment → coder → tester → reviewer. Gunakan agent ini untuk task apapun di Go microservice project seperti callsessionlistener.
-mode: subagent
+name: go-wacall
+description: Pipeline lengkap multi-agent untuk development Go microservice (Gin, MySQL/sqlx, zap). Dari TRD sampai PR-ready code dengan test otomatis. Orkestrasi orchestrator → environment → coder → tester → reviewer. Panggil agent ini untuk task apapun di Go microservice project seperti callsessionlistener.
 ---
 
 # Go Dev Pipeline
@@ -32,24 +32,24 @@ Cukup berikan TRD — pipeline otomatis menjalankan semua agent sampai kode siap
 
 ## Cara Jalankan Step by Step
 
-### Step 1 — Spawn agent `go-wacall-orchestrator`
+### Step 1 — Spawn agent `go-svc__orchestrator`
 Input: TRD dari dev
 Output: task summary (endpoint, struct yang dibuat, test cases, DB)
 **STOP — tampilkan summary ke dev. Tunggu konfirmasi "lanjut" sebelum Step 2.**
 
-### Step 2 — Spawn agent `go-wacall-environment`
+### Step 2 — Spawn agent `go-svc__environment`
 Input: task summary yang sudah dikonfirmasi
 Output: konfirmasi mock siap, fixtures tersedia, interface validated
 
-### Step 3 — Spawn agent `go-wacall-coder`
+### Step 3 — Spawn agent `go-svc__coder`
 Input: task summary + output environment
 Output: list file yang diubah/dibuat beserta kodenya
 
-### Step 4 — Spawn agent `go-wacall-tester`
+### Step 4 — Spawn agent `go-svc__tester`
 Input: kode dari coder
 Output: TESTER REPORT (PASS/FAIL, coverage %, detail failure jika ada)
 
-### Step 5 — Spawn agent `go-wacall-reviewer`
+### Step 5 — Spawn agent `go-svc__reviewer`
 Input: TESTER REPORT
 Output: FINAL REPORT (PASS dengan PR desc, atau instruksi fix ke coder/tester)
 

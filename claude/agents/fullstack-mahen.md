@@ -1,6 +1,6 @@
 ---
-description: Pipeline lengkap multi-agent untuk development project pesenin / loketin.id dan edusmarttest (Go backend + React frontend). Dari TRD sampai PR-ready code. Orkestrasi team-lead → backend-dev dan/atau frontend-dev secara otomatis. Gunakan agent ini untuk task apapun di project pesenin atau edusmarttest.
-mode: subagent
+name: fullstack-mahen
+description: Pipeline lengkap multi-agent untuk development project pesenin / loketin.id dan edusmarttest (Go backend + React frontend). Dari TRD sampai PR-ready code. Orkestrasi team-lead → backend-dev dan/atau frontend-dev secara otomatis. Panggil agent ini untuk task apapun di project pesenin atau edusmarttest.
 ---
 
 # Fullstack Mahen Dev Pipeline
