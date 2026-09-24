@@ -116,6 +116,7 @@ File yang akan di-generate:
   e2e/flow_test.go
   e2e/testdata/init.sql
   UAT-dr-converter.md
+  E2E-EVIDENCE.md (diisi setelah test benar-benar dijalankan — lihat Langkah 7)
   Makefile (tambah target test + e2e)
 
 Generate sekarang? (y/n)
@@ -911,7 +912,107 @@ mvn test -Pe2e    # e2e test automation
 
 ---
 
-### Langkah 7 — Ringkasan Output
+### Langkah 7 — Generate E2E-EVIDENCE.md (jalankan test asli, capture log)
+
+Setelah kode test dan Makefile/pom.xml siap, **jalankan benar-benar** E2E test-nya — jangan hanya klaim lolos tanpa run. Simpan hasil run sebagai bukti persisten di `doc/<PB-folder>/E2E-EVIDENCE.md` (folder yang sama dengan `UAT-[project].md`; jika project tidak memakai konvensi folder `doc/<PB-folder>/`, taruh di sebelah `UAT-[project].md`). File ini yang nantinya dibaca skill `crd-gen` sebagai "protocol-level evidence" saat generate CRD.
+
+**MODE GENERATE dan MODE UPDATE (pilihan a/c)**: langkah ini WAJIB dijalankan setelah kode test siap/berubah.
+**MODE UPDATE (pilihan b)**: opsional — jalankan ulang jika perubahan infra memengaruhi hasil test.
+
+Langkah:
+
+1. Jalankan test E2E yang sesungguhnya:
+   - Go: `make e2e` (atau `cd e2e && go test -v -timeout 10m ./...`)
+   - Java: `mvn test -Pe2e` (atau `make e2e` jika Makefile sudah ada target itu)
+
+   Tangkap SELURUH output (stdout+stderr) — jangan dipotong. Jika app-nya menulis log terpisah ke file (mis. `e2e/logs/e2e_debug.log` dan `e2e/logs/e2e_error.log` pada project Go yang sudah punya konvensi ini), tangkap juga isi kedua file itu.
+
+2. Dari output/log tsb, ekstrak apa adanya (kutip langsung, jangan diringkas/dikarang ulang, jangan potong body request/curl):
+   - Baris startup tiap container Testcontainers (nama image + waktu start) → untuk tabel **Infrastructure**
+   - Baris `>>> [E2E] START ...` / `>>> [E2E] END ...` per test case — bukti tiap skenario benar-benar dieksekusi, bukan di-skip
+   - Log level aplikasi (bukan cuma log test runner) per test case — request/message masuk, proses internal, response/side-effect keluar, lengkap dengan timestamp + request ID kalau app-nya punya
+   - Ringkasan resmi test runner: `Tests run: X, Failures: Y, Errors: Z` + `BUILD SUCCESS`/`BUILD FAILURE` (Java) atau `ok`/`FAIL ... [build failed]` (Go)
+   - Jika ada test yang gagal atau di-skip, sertakan stack trace/pesan error-nya apa adanya beserta penjelasan kenapa — jangan disunting supaya kelihatan lolos
+
+3. Tulis/append ke `doc/<PB-folder>/E2E-EVIDENCE.md` memakai format di bawah. Jika file sudah ada dari run sebelumnya, tambahkan entry run baru di **atas** (newest-first) — jangan timpa histori run lama.
+
+4. **Jangan pernah** menulis file ini tanpa benar-benar menjalankan test. Isinya harus berasal dari output run yang nyata pada saat itu, bukan hasil generate sebelumnya yang dituliskan ulang.
+
+#### Format E2E-EVIDENCE.md
+
+```markdown
+# {Project} — E2E Log Evidence
+
+## Run — [YYYY-MM-DD HH:mm] ([branch])
+
+**Command:** `make e2e` (atau perintah sebenarnya yang dijalankan)
+**Infra:** {DB} + {Queue} (Docker via Testcontainers)
+**Status:** {N}/{total} PASSED
+
+### Test Matrix
+
+| # | Skenario | Trigger | Expected | Status |
+|:--:|---|---|---|:--:|
+| 1 | [nama test case] | [HTTP/queue trigger] | [hasil yang diharapkan] | ✅ |
+| ... | ... | ... | ... | ✅ |
+
+### Log Evidence
+
+#### test01 — [nama test case] → PASS
+
+*Full raw log verbatim (app + test runner):*
+
+```
+[log lengkap apa adanya untuk test case ini — request masuk, proses, response/side-effect,
+timestamp + request ID kalau ada. JANGAN diringkas, JANGAN potong body request/curl.]
+```
+
+| No | Check | Value | Status |
+|:--:|-------|-------|:------:|
+| 1 | [hal yang divalidasi] | [nilai aktual dari log/DB] | ✅ |
+| ... | ... | ... | ✅ |
+
+<!-- ulangi blok "test0N — ..." di atas untuk setiap test case. Test yang FAIL/SKIP tetap
+     dicantumkan dengan status ❌/⏭️ dan penjelasan kenapa, jangan dihapus dari daftar. -->
+
+### Infrastructure
+
+| Service | Container | Image | Status |
+|---|---|---|:--:|
+| [nama service, mis. MySQL] | [nama container testcontainers] | [image:tag] | ✅ started |
+| ... | ... | ... | ✅ started |
+
+### Full Test Run Output
+
+```
+$ [perintah asli yang dijalankan, mis. mvn test -Pe2e / go test ./e2e/ -v -timeout 10m]
+[output lengkap apa adanya dari perintah di atas]
+```
+
+### Build Summary
+
+```
+[blok ringkasan resmi runner: Tests run:.../BUILD SUCCESS, atau go test ok/FAIL — kutip apa adanya]
+```
+
+---
+
+## Run — [tanggal run sebelumnya, jika ada dari histori]
+
+...
+```
+
+**Aturan:**
+- Isi harus kutipan log asli hasil run — bisa diverifikasi ulang, bukan ringkasan/karangan
+- Kalau app menulis dua log terpisah (debug & error), tampilkan **dua blok kode terpisah** per test case (`**e2e_debug.log:**` / `**e2e_error.log:**`) — jangan digabung. Kalau error log kosong untuk test case tsb, tulis `(no error)`
+- Checklist per test case pakai tabel `| No | Check | Value | Status |`, konsisten di semua test case
+- Test yang SKIP/FAIL tetap dicantumkan di Test Matrix dan Log Evidence, dengan status dan penjelasan — jangan dihapus dari daftar supaya kelihatan semua lolos
+- File ini **di-track git** (bukan di `target/`, `dist/`, atau folder yang di-`.gitignore`) — tujuannya jadi bukti permanen untuk CRD, beda dari `target/surefire-reports/` yang ephemeral
+- Setiap kali test E2E dijalankan ulang dan hasilnya relevan untuk dicatat, tambahkan entry run baru — jangan hapus histori run sebelumnya
+
+---
+
+### Langkah 8 — Ringkasan Output
 
 Setelah semua file di-generate, tampilkan ringkasan:
 
@@ -928,6 +1029,7 @@ e2e/
     └── init.sql          ← DDL untuk [list tabel]
 
 UAT-[project].md          ← dokumentasi UAT format tabel horizontal
+E2E-EVIDENCE.md           ← log bukti run asli (di-generate di Langkah 7, setelah test dijalankan)
 
 Makefile — target ditambahkan:
   make test           → unit test saja
@@ -961,6 +1063,7 @@ src/test/resources/
 └── application-e2e.properties   ← config override (disable scheduler, timeout singkat)
 
 UAT-[project].md                 ← dokumentasi UAT format tabel horizontal
+E2E-EVIDENCE.md                  ← log bukti run asli (di-generate di Langkah 7, setelah test dijalankan)
 
 pom.xml — profile ditambahkan:
   mvn test        → unit test saja (default, exclude *E2EIT)

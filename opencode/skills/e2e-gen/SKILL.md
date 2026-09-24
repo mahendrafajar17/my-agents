@@ -1,11 +1,11 @@
 ---
 name: e2e-gen
-description: Generate E2E test automation boilerplate dan UAT documentation untuk project Go atau Java Spring Boot. Gunakan ketika user mengetik /e2e-gen atau meminta generate E2E test, E2E automation, E2E evidence, UAT documentation, atau testcontainers boilerplate. Menghasilkan e2e/main_test.go, helpers_test.go, flow_test.go, testdata/init.sql, UAT MD, dan E2E-LOG-EVIDENCE MD.
+description: Generate E2E test automation boilerplate dan UAT documentation untuk project Go, Java Spring Boot, atau PHP web app (Playwright). Gunakan ketika user mengetik /e2e-gen atau meminta generate E2E test, E2E automation, E2E evidence, UAT documentation, atau testcontainers boilerplate. Go/Java menghasilkan e2e/main_test.go, helpers_test.go, flow_test.go, testdata/init.sql, UAT MD, dan E2E-LOG-EVIDENCE MD. PHP menghasilkan e2e/package.json, playwright.config.js, tests/security.spec.js, tests/functional.spec.js, UAT MD, dan E2E-LOG-EVIDENCE MD.
 ---
 
-Generate E2E test automation boilerplate dan UAT documentation untuk project Go atau Java Spring Boot. Menghasilkan file siap pakai: struktur folder e2e/, kode boilerplate lengkap, dan UAT .md dengan format tabel horizontal.
+Generate E2E test automation boilerplate dan UAT documentation untuk project Go, Java Spring Boot, atau PHP web app. Menghasilkan file siap pakai: struktur folder e2e/, kode boilerplate lengkap, dan UAT .md dengan format tabel horizontal.
 
-**Alur E2E test yang di-generate:**
+**Alur E2E test yang di-generate (Go/Java):**
 ```
 TEAR UP   → spin up Docker (DB/queue/cache) + seed data + jalankan app
 PROSES    → trigger aksi (publish queue / HTTP request)
@@ -13,7 +13,16 @@ VALIDASI  → assert DB / mock server / HTTP response
 TEAR DOWN → matikan app + hapus container (otomatis via defer)
 ```
 
-Baik Go maupun Java menggunakan **Testcontainers** untuk spin up Docker infra secara otomatis dari dalam test — tidak perlu setup manual.
+**Alur E2E test yang di-generate (PHP — browser via Playwright):**
+```
+TEAR UP   → webServer Playwright auto-start app (php -S / php artisan serve) — otomatis
+PROSES    → buka halaman + aksi user beneran di browser (klik, isi form, submit)
+VALIDASI  → assert UI (visible/hidden/class), response header security (CSP dkk),
+            console error, nilai di DOM, log file (mis. csp_report_*.log)
+TEAR DOWN → webServer berhenti otomatis setelah test selesai
+```
+
+Go dan Java menggunakan **Testcontainers** untuk spin up Docker infra otomatis dari dalam test. PHP web app menggunakan **Playwright** (Node.js) dengan `webServer` config — tidak perlu Docker, tidak perlu setup manual.
 
 ## Cara Pakai
 
@@ -39,11 +48,13 @@ Baca root project yang diberikan (atau working directory jika tidak ada argumen)
 
 1. Ada `go.mod` → project **Go**
 2. Ada `pom.xml` → project **Java Spring Boot**
-3. Tidak ada keduanya → tanya user
+3. Ada file `*.php` (khususnya di root, seperti `index.php` / `*.php` page) → project **PHP web app** (Playwright)
+4. Tidak ada semuanya → tanya user
 
 Setelah deteksi bahasa, cek keberadaan E2E yang sudah ada:
 - **Go**: cek apakah folder `e2e/` sudah ada dan berisi `main_test.go`
 - **Java**: cek apakah folder `src/test/java/.../e2e/` sudah ada dan berisi `E2EContainers.java`
+- **PHP**: cek apakah folder `e2e/` sudah ada dan berisi `playwright.config.js`
 
 Jika sudah ada → lanjut ke **Langkah 2 dalam MODE UPDATE**
 Jika belum ada → lanjut ke **Langkah 2 dalam MODE GENERATE**
@@ -95,6 +106,25 @@ Dari bacaan di atas, deteksi:
 - **Collections/tabel runtime**: collection yang ditulis saat proses (bukan config) — ini yang di-clear antar test
 - **Collections config**: collection yang dibaca saat startup (mis. `telegram_config`, `routing`) — ini yang di-seed sebelum context start
 
+#### Jika PHP (web app):
+
+Baca file-file berikut secara berurutan:
+
+1. **File `*.php` di root** — list semua halaman (`index.php`, `success.php`, dsb), baca: form id/action, input id/name, inline script/style, event handler, header PHP (`header()` call)
+2. **`config.php` / file config** — baca: env var yang dipakai, security headers (CSP, X-Frame-Options, dll), URL eksternal yang dipanggil
+3. **`js/`** — list semua file JS yang di-load tiap halaman; identifikasi library (jQuery version, bundle vendor) dan file JS custom (form validation, dsb)
+4. **`css/`** — hanya untuk tahu resource yang di-load (untuk CSP assertion)
+5. **`docker-compose.yml` / `Dockerfile` / `nginx/`** — cara app dijalankan di produksi, port
+6. **`logs/` atau lokasi log** — file log yang ditulis app (untuk assertion evidence)
+
+Dari bacaan di atas, deteksi:
+- **Cara run dev**: `php -S 127.0.0.1:[PORT] -t [docroot]` (docroot biasanya root project) — ini jadi `webServer.command` di Playwright
+- **Halaman**: list halaman utama + halaman redirect/result (mis. index.php → success.php)
+- **Security headers yang diharapkan**: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, dsb (dari `config.php`)
+- **Form flow**: form → endpoint POST → redirect; field yang divalidasi client-side; captcha/OAuth eksternal yang perlu di-stub
+- **Dependency eksternal yang tidak bisa dijalankan di test**: reCAPTCHA (`grecaptcha`), Facebook SDK (`FB`), Google Analytics (`gtag`/`fbq`) — di-stub via `page.addInitScript` / route interception, atau ditoleransi dalam cek console error
+- **Log file yang ditulis app** (mis. `csp_report_*.log`) — untuk assertion endpoint reporting
+
 ---
 
 ### Langkah 3 — Konfirmasi ke User
@@ -126,13 +156,37 @@ File yang akan di-generate:
 Generate sekarang? (y/n)
 ```
 
-Tunggu konfirmasi user sebelum melanjutkan. Jika y → lanjut ke Langkah 4A/4B (MODE GENERATE).
+Tunggu konfirmasi user sebelum melanjutkan. Jika y → lanjut ke Langkah 4A/4B/4C (MODE GENERATE).
+
+Contoh ringkasan deteksi untuk **PHP**:
+
+```
+Terdeteksi:
+- Language    : PHP (web app)
+- Run dev     : php -S 127.0.0.1:8099 -t .
+- Halaman     : index.php, index-id.php, success.php, success-id.php
+- Flow        : form → POST accesstoken.php → redirect success(-id).php
+- Security    : CSP + XFO + nosniff + Referrer-Policy (di config.php)
+- Eksternal   : reCAPTCHA (grecaptcha), FB SDK (FB), gtag (di-stub/ditoleransi)
+- Log         : logs/csp_report_YYYYMMDD.log
+
+File yang akan di-generate:
+  e2e/package.json
+  e2e/playwright.config.js
+  e2e/tests/helpers.js
+  e2e/tests/security.spec.js
+  e2e/tests/functional.spec.js
+  UAT-embedded-sign-up.md
+  Makefile (tambah target e2e)
+
+Generate sekarang? (y/n)
+```
 
 ---
 
 #### Jika MODE UPDATE (e2e/ sudah ada):
 
-Baca file yang sudah ada (Go: `e2e/flow_test.go`; Java: `*FlowE2EIT.java`), hitung jumlah test function. Baca juga `UAT-[project].md` jika ada.
+Baca file yang sudah ada (Go: `e2e/flow_test.go`; Java: `*FlowE2EIT.java`; PHP: `e2e/tests/*.spec.js`), hitung jumlah test function. Baca juga `UAT-[project].md` jika ada.
 
 Tampilkan menu pilihan:
 
@@ -151,7 +205,23 @@ Mau update apa?
 Pilih (a/b/c):
 ```
 
-Tunggu jawaban user, lalu lanjut ke Langkah 4C sesuai pilihan.
+Contoh menu untuk **PHP**:
+
+```
+E2E sudah ada! Terdeteksi:
+- Language    : PHP (web app)
+- Test files  : security.spec.js (5 tests), functional.spec.js (6 tests)
+- UAT         : UAT-embedded-sign-up.md (12 skenario)
+
+Mau update apa?
+  a) Tambah test case baru — tambah test() ke security.spec.js/functional.spec.js + baris ke UAT
+  b) Update infrastruktur — ubah webServer/config/helper di playwright.config.js atau helpers.js
+  c) Regenerate semua — overwrite semua file (tidak bisa di-undo)
+
+Pilih (a/b/c):
+```
+
+Tunggu jawaban user, lalu lanjut ke Langkah 4D sesuai pilihan.
 
 ---
 
@@ -731,24 +801,305 @@ logging.level.[package_root]=DEBUG
 
 ---
 
-#### 4C. MODE UPDATE — sesuai pilihan user
+#### 4C. Untuk PHP (MODE GENERATE — Playwright):
+
+**`e2e/package.json`**
+
+```json
+{
+  "name": "[nama-project]-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E2E test automation for [nama-project] (PHP)",
+  "scripts": {
+    "test": "playwright test",
+    "test:security": "playwright test tests/security.spec.js",
+    "test:functional": "playwright test tests/functional.spec.js",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
+```
+
+**`e2e/playwright.config.js`**
+
+```js
+const { defineConfig } = require('@playwright/test');
+
+module.exports = defineConfig({
+  testDir: './tests',
+  timeout: 30000,
+  expect: { timeout: 10000 },
+  fullyParallel: false,
+  workers: 1,
+  retries: 0,
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
+  use: {
+    baseURL: 'http://127.0.0.1:[PORT]',
+    headless: true,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+  },
+  outputDir: 'test-results',
+  webServer: {
+    command: 'php -S 127.0.0.1:[PORT] -t ..',  // TODO: sesuaikan docroot (biasanya '..' karena config berada di e2e/)
+    cwd: __dirname,
+    url: 'http://127.0.0.1:[PORT]/[halaman_utama].php',
+    reuseExistingServer: false,
+    timeout: 30000,
+  },
+});
+```
+
+**`e2e/tests/helpers.js`**
+
+```js
+// Helper bersama untuk security + functional spec
+const { expect } = require('@playwright/test');
+
+// Daftar halaman utama project (TODO: sesuaikan)
+const PAGES = ['index.php', 'success.php']; // TODO: lengkapi semua halaman
+
+// Header security yang wajib ada di semua halaman (TODO: sesuaikan dengan config.php)
+const REQUIRED_HEADERS = {
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+};
+
+// Asal error console yang ditoleransi (dependency eksternal yang tidak bisa dihindari di test env)
+// TODO: sesuaikan — contoh: Google/Facebook domain boleh error network tapi bukan error JS app sendiri
+const ALLOWED_CONSOLE_ORIGINS = [
+  /googletagmanager\.com/,
+  /google\.com/,
+  /google-analytics\.com/,
+  /gstatic\.com/,
+  /facebook\.net/,
+  /facebook\.com/,
+];
+
+async function assertSecurityHeaders(res, extra = {}) {
+  for (const [header, expected] of Object.entries({ ...REQUIRED_HEADERS, ...extra })) {
+    const value = res.headers()[header];
+    expect(value, `header ${header} harus ada`).toBeTruthy();
+    if (expected && expected !== '*') {
+      expect(value, `header ${header} harus berisi ${expected}`).toContain(expected);
+    }
+  }
+}
+
+async function collectConsoleErrors(page) {
+  const errors = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text());
+  });
+  page.on('pageerror', (err) => errors.push(String(err)));
+  return errors;
+}
+
+function assertNoAppErrors(errors, origin = window?.location?.origin || '') {
+  const appErrors = errors.filter((e) => !ALLOWED_CONSOLE_ORIGINS.some((re) => re.test(e)));
+  expect(appErrors, `console error tidak boleh ada:\n${appErrors.join('\n')}`).toEqual([]);
+}
+
+module.exports = {
+  PAGES,
+  REQUIRED_HEADERS,
+  ALLOWED_CONSOLE_ORIGINS,
+  assertSecurityHeaders,
+  collectConsoleErrors,
+  assertNoAppErrors,
+};
+```
+
+**`e2e/tests/security.spec.js`**
+
+```js
+const { test, expect } = require('@playwright/test');
+const {
+  PAGES,
+  assertSecurityHeaders,
+  collectConsoleErrors,
+  assertNoAppErrors,
+} = require('./helpers');
+
+// TODO: sesuaikan dengan CSP yang ada di config.php
+const CSP_FRAGMENTS = [
+  "default-src 'self'",
+  'script-src',
+  'style-src',
+  'frame-ancestors',
+  'report-uri',
+];
+
+test.describe('Security headers', () => {
+  for (const page of PAGES) {
+    test(`[${page}] security headers + CSP + no console error`, async ({ page: p }) => {
+      const errors = collectConsoleErrors(p);
+      const res = await p.goto(`/${page}`);
+
+      expect(res.status(), 'HTTP status harus 200').toBe(200);
+      await assertSecurityHeaders(res, {
+        'content-security-policy': CSP_FRAGMENTS.join(' '),
+      });
+      // TODO: sesuaikan cek per-fragmen jika perlu:
+      const csp = res.headers()['content-security-policy'] || '';
+      for (const fragment of CSP_FRAGMENTS) {
+        expect(csp, `CSP harus berisi "${fragment}"`).toContain(fragment);
+      }
+      await p.waitForLoadState('load');
+      assertNoAppErrors(errors);
+    });
+  }
+});
+
+test.describe('CSP reporting endpoint', () => {
+  test('POST /csp-report.php → 204 + log tertulis', async ({ request }) => {
+    // TODO: sesuaikan nama endpoint + lokasi log dengan project
+    const res = await request.post('/csp-report.php', {
+      headers: { 'Content-Type': 'application/csp-report' },
+      data: {
+        'csp-report': {
+          'blocked-uri': 'https://e2e-test.invalid/x.js',
+          'document-uri': 'http://e2e/index.php',
+          'violated-directive': 'script-src',
+          'effective-directive': 'script-src',
+          'original-policy': 'e2e-test',
+          'source-file': 'http://e2e/index.php',
+          'line-number': 10,
+        },
+      },
+    });
+    expect(res.status(), 'endpoint report harus 204').toBe(204);
+    // TODO: verifikasi log file di disk (bisa via fs) lalu hapus log test
+  });
+});
+```
+
+**`e2e/tests/functional.spec.js`**
+
+```js
+const { test, expect } = require('@playwright/test');
+const { collectConsoleErrors, assertNoAppErrors } = require('./helpers');
+
+// TODO: sesuaikan dengan form & alur project. Prinsip:
+// - alur yang TIDAK butuh dependency eksternal diuji penuh
+// - dependency eksternal (grecaptcha, FB, gtag) di-stub via page.addInitScript
+// - FB/OAuth asli tetap dicover manual di UAT
+
+test.describe('[Nama Alur] — validasi form', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/index.php'); // TODO: halaman form
+  });
+
+  test('phone invalid → pesan validasi tampil, tidak submit', async ({ page }) => {
+    // TODO: sesuaikan selector field + teks pesan
+    await page.fill('#fullname', 'Test User');
+    await page.fill('#corporate_email', 'test@corp.com');
+    await page.fill('#phone_number', 'abc123');
+    await page.click('button[type=submit]');
+    const msg = await page.locator('#phone_number').evaluate(
+      (el) => el.validationMessage
+    );
+    expect(msg).toContain('max 13-digit');
+    expect(page.url()).not.toContain('accesstoken.php'); // tidak ada submit
+  });
+
+  test('captcha kosong → alert tampil (grecaptcha di-stub)', async ({ page }) => {
+    // Stub dependency eksternal SEBELUM page load
+    await page.addInitScript(() => {
+      window.grecaptcha = { getResponse: () => '' };
+      window.fbq = undefined;
+    });
+    await page.goto('/index.php');
+    await page.fill('#fullname', 'Test User');
+    await page.fill('#corporate_email', 'test@corp.com');
+    await page.fill('#phone_number', '08123456789');
+    let dialogText = '';
+    page.on('dialog', async (d) => { dialogText = d.message(); await d.accept(); });
+    await page.click('button[type=submit]');
+    expect(dialogText).toContain('CAPTCHA'); // TODO: sesuaikan teks alert
+  });
+
+  test('submit valid → sampai FB.login (FB di-stub, capture config)', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.grecaptcha = { getResponse: () => 'e2e-token' };
+      window.fbq = () => {};
+      window.__fbLoginCaptured = null;
+      window.FB = {
+        init: () => {},
+        login: (cb, opts) => {
+          window.__fbLoginCaptured = opts;
+          // jangan panggil cb dengan authResponse → tidak ada POST/submit di test
+        },
+      };
+    });
+    await page.goto('/index.php');
+    await page.fill('#fullname', 'Test User');
+    await page.fill('#corporate_email', 'test@corp.com');
+    await page.fill('#phone_number', '08123456789');
+    await page.click('button[type=submit]');
+    const captured = await page.evaluate(() => window.__fbLoginCaptured);
+    expect(captured, 'FB.login harus dipanggil dengan config embedded signup').toBeTruthy();
+    expect(captured.response_type).toBe('code'); // TODO: sesuaikan assert
+  });
+});
+
+test.describe('Regresi UI', () => {
+  test('menu dropdown terbuka', async ({ page }) => {
+    await page.goto('/index.php');
+    await page.hover('nav .dropdown'); // TODO: sesuaikan selector menu
+    await expect(page.locator('nav .dropdown .dropdown-menu')).toBeVisible();
+  });
+
+  test('sticky header aktif setelah scroll', async ({ page }) => {
+    await page.goto('/index.php');
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(500);
+    await expect(page.locator('header')).toHaveClass(/sticky/); // TODO: sesuaikan
+  });
+});
+```
+
+**`e2e/.gitignore`** (jangan commit artifact):
+
+```
+node_modules/
+test-results/
+playwright-report/
+screenshots/
+```
+
+Prinsip penting untuk spec PHP:
+- JANGAN hard-assert flow OAuth/captcha asli (butuh kredensial real + network) — itu dicover manual di UAT. Di spec, stub `window.FB` / `window.grecaptcha` / `window.fbq` via `page.addInitScript()` untuk membuktikan flow kode app sampai titik panggilan eksternal.
+- Console error assertion harus punya daftar origin eksternal yang ditoleransi (GA/FB/reCAPTCHA bisa gagal load di test env) — error JS app sendiri tetap wajib 0.
+- Untuk app yang menulis log file (mis. `csp_report_*.log`), assertion endpoint bisa baca file log via `fs` lalu hapus log test agar evidence bersih.
+- Screenshot diambil otomatis saat failure (`only-on-failure`); untuk evidence UAT bisa tambah `await page.screenshot({ path: 'screenshots/[nama].png' })` pada happy-path test.
+
+---
+
+#### 4D. MODE UPDATE — sesuai pilihan user
 
 **Pilihan a) Tambah test case baru:**
 
-1. Baca `e2e/flow_test.go` (Go) atau `*FlowE2EIT.java` (Java) untuk memahami pola test yang sudah ada
+1. Baca `e2e/flow_test.go` (Go), `*FlowE2EIT.java` (Java), atau `e2e/tests/*.spec.js` (PHP) untuk memahami pola test yang sudah ada
 2. Baca `UAT-[project].md` untuk melihat skenario yang sudah ada
 3. Tanya user: "Skenario baru apa yang ingin ditambahkan? Jelaskan trigger dan expected result-nya."
 4. Tunggu jawaban, lalu:
    - **Go**: tambahkan fungsi `TestFlow_[NamaBaru]` ke `e2e/flow_test.go` mengikuti pola yang ada. Jangan ubah fungsi yang sudah ada.
    - **Java**: tambahkan method `@Test` ke `*FlowE2EIT.java` yang sudah ada. Jika scope berbeda, buat file `[NamaBaru]FlowE2EIT.java` baru.
+   - **PHP**: tambahkan `test(...)` ke `security.spec.js` (jika menyangkut header/endpoint) atau `functional.spec.js` (jika menyangkut UI/flow). Jika scope berbeda, buat file `[nama-baru].spec.js`.
 5. Tambahkan baris baru ke UAT-[project].md di section yang sesuai (atau buat section baru jika perlu)
-6. Tampilkan ringkasan: "Ditambahkan: 1 test case di flow_test.go + 1 baris di UAT-[project].md"
+6. Tampilkan ringkasan: "Ditambahkan: 1 test case di [file] + 1 baris di UAT-[project].md"
 
 **Pilihan b) Update infrastruktur:**
 
 1. Baca file infra yang ada:
    - **Go**: baca `e2e/main_test.go` dan `e2e/helpers_test.go`
    - **Java**: baca `E2EContainers.java` dan `AbstractE2EIT.java` dan `application-e2e.properties`
+   - **PHP**: baca `e2e/playwright.config.js` dan `e2e/tests/helpers.js`
 2. Tampilkan infra yang terdeteksi saat ini:
    ```
    Infra saat ini:
@@ -756,16 +1107,18 @@ logging.level.[package_root]=DEBUG
    - Mock      : webhookMock (port auto)
    - Config    : writeConfig() di helpers_test.go
    ```
-3. Tanya user: "Apa yang ingin diubah? (contoh: tambah Redis container, tambah mock baru, ganti versi image)"
+   (Untuk PHP: tampilkan `webServer.command`, port, baseURL, dan list header yang di-assert di `helpers.js`.)
+3. Tanya user: "Apa yang ingin diubah? (contoh: tambah Redis container, tambah mock baru, ganti versi image)" — untuk PHP contohnya: ganti port, tambah header yang di-assert, tambah origin toleransi console error
 4. Tunggu jawaban, lalu update hanya bagian yang diminta:
    - Tambah container → tambah ke blok `TestMain` (Go) atau `E2EContainers static {}` (Java)
    - Tambah mock server → tambah variable dan inisialisasi di file infra yang sesuai, tambah juga ke `@DynamicPropertySource` / `writeConfig()`
    - Ganti image → update string Docker image saja
-5. Jangan ubah test case di `flow_test.go` atau `*FlowE2EIT.java` kecuali memang terdampak langsung
+   - PHP: ganti port → `playwright.config.js` (webServer + baseURL); tambah header → `REQUIRED_HEADERS` di `helpers.js`; tambah toleransi console → `ALLOWED_CONSOLE_ORIGINS`
+5. Jangan ubah test case di `flow_test.go`, `*FlowE2EIT.java`, atau `*.spec.js` kecuali memang terdampak langsung
 
 **Pilihan c) Regenerate semua:**
 
-Lanjutkan ke Langkah 4A atau 4B sesuai bahasa project — generate ulang semua file dengan overwrite.
+Lanjutkan ke Langkah 4A, 4B, atau 4C sesuai bahasa project — generate ulang semua file dengan overwrite.
 
 ---
 
@@ -832,6 +1185,13 @@ Format wajib untuk file baru (MODE GENERATE), buat file `e2e/UAT-[nama-project].
 - Setup Data: isi query insert MongoDB / SQL yang nyata berdasarkan schema yang ditemukan
 - Steps: isi payload/trigger yang nyata berdasarkan format yang diterima handler app
 - Expected Results: kondisi spesifik di DB (collection, field, nilai) bukan deskripsi umum
+
+**Panduan UAT untuk PHP (web app):**
+- Section 0 (Preparation): deploy app (SIT/Docker/`php -S`), setup env var (`APP_ID`, `RECAPTCHA_*`, dsb), siapkan kredensial OAuth/captcha untuk test manual
+- Section per fitur: kelompokkan per halaman/alur (form register → redirect success; halaman statis; menu)
+- Setup Data: kredensial akun bisnis FB / akun uji yang dipakai
+- Steps: langkah klik/isi di browser; sertakan juga langkah yang hanya bisa manual (OAuth login asli) — ini pelengkap dari yang sudah diotomasi Playwright
+- Expected Results: kondisi UI spesifik (pesan validasi, halaman redirect, elemen terlihat) + header response bila relevan
 
 ---
 
@@ -914,6 +1274,37 @@ mvn test          # unit test saja (default)
 mvn test -Pe2e    # e2e test automation
 ```
 
+**PHP — tambahkan ke `Makefile` (atau buat baru jika belum ada):**
+
+```makefile
+# Setup E2E sekali saja (install deps + download browser chromium ~100MB)
+e2e-setup:
+	cd e2e && npm install && npx playwright install chromium
+
+# E2E test automation (webServer php -S di-start otomatis oleh Playwright)
+e2e:
+	cd e2e && npx playwright test
+
+# Jalankan satu spec / satu test saja
+# Contoh: make e2e-run TEST="functional.spec.js"
+e2e-run:
+	cd e2e && npx playwright test $(TEST)
+
+# Jalankan dengan browser terlihat (debug)
+e2e-ui:
+	cd e2e && npx playwright test --headed
+
+# Buka HTML report hasil test terakhir
+e2e-report:
+	cd e2e && npx playwright show-report
+```
+
+Cara run:
+```bash
+make e2e-setup   # sekali saja
+make e2e         # e2e test automation
+```
+
 ---
 
 ### Langkah 7 — Ringkasan Output
@@ -981,6 +1372,32 @@ Jalankan:
   mvn test -Pe2e
 ```
 
+**Untuk PHP (Playwright):**
+```
+✅ File yang di-generate:
+
+e2e/
+├── package.json             ← deps @playwright/test + script npm
+├── playwright.config.js     ← TEAR UP/TEAR DOWN: webServer auto-start php -S (otomatis)
+├── .gitignore               ← node_modules/, test-results/, playwright-report/, screenshots/
+└── tests/
+    ├── helpers.js           ← PAGES, REQUIRED_HEADERS, ALLOWED_CONSOLE_ORIGINS, assert helper
+    ├── security.spec.js     ← VALIDASI header security + CSP + endpoint report per halaman
+    └── functional.spec.js   ← PROSES + VALIDASI: form flow (stub captcha/FB) + regresi UI
+
+UAT-[project].md             ← dokumentasi UAT format tabel horizontal (flow manual: OAuth/captcha asli)
+Makefile — target: e2e-setup, e2e, e2e-run, e2e-ui, e2e-report
+
+⚠️  Perlu disesuaikan manual:
+- playwright.config.js — port webServer + halaman utama di `url`
+- helpers.js — daftar PAGES, REQUIRED_HEADERS (samakan dengan config.php), ALLOWED_CONSOLE_ORIGINS
+- security.spec.js — fragment CSP yang di-assert + nama endpoint report (mis. csp-report.php)
+- functional.spec.js — selector form/field/teks pesan validasi sesuai HTML asli
+
+Jalankan:
+  make e2e-setup && make e2e
+```
+
 ---
 
 ## Referensi Implementasi Nyata
@@ -996,6 +1413,14 @@ Jika perlu melihat contoh kode yang sudah berjalan, baca file-file berikut:
 - `cimb_gateway/message-in-transmitter/dev/src/test/java/.../e2e/E2EContainers.java`
 - `cimb_gateway/message-in-transmitter/dev/src/test/java/.../e2e/AbstractE2EIT.java`
 - `cimb_gateway/message-in-transmitter/dev/src/test/java/.../e2e/MessageInFlowE2EIT.java`
+
+**PHP (web app + Playwright):**
+- `jatis_website/embedded-sign-up/e2e/package.json`
+- `jatis_website/embedded-sign-up/e2e/playwright.config.js`
+- `jatis_website/embedded-sign-up/e2e/tests/helpers.js`
+- `jatis_website/embedded-sign-up/e2e/tests/security.spec.js`
+- `jatis_website/embedded-sign-up/e2e/tests/functional.spec.js`
+- `jatis_website/embedded-sign-up/docs/UAT-embedded-sign-up.md`
 
 **Dokumentasi konsep & panduan lengkap** (tersedia lokal di `.claude/docs/`):
 - `../docs/README.md` — konsep, kelebihan, perbedaan dengan unit/integration test
@@ -1070,3 +1495,60 @@ Passed:    {count}
 - **Checklist**: format tabel `| No | Check | Value | Status |`, semua icon ✅. Uniform di semua test case.
 - **Timestamp + Request ID**: tampilkan lengkap agar bisa ditelusuri.
 - **test yang SKIP/FAIL**: tetap cantumkan dengan penjelasan kenapa.
+
+### Format Khusus PHP (Playwright)
+
+Setelah E2E test selesai dijalankan, generate evidence MD dengan format browser-based:
+
+```
+# {Project} — E2E Log Evidence (Playwright)
+**Branch:** `{branch}` | **Date:** {date}
+**Runner:** Playwright + Chromium headless | **WebServer:** php -S 127.0.0.1:{PORT} (auto by Playwright)
+**Status:** {N}/{total} PASSED
+
+## Test Matrix
+| # | Test | Spec | Assertion Utama | Status |
+...
+
+## Evidence per Test Case
+
+### test01 — {judul} → PASS
+| No | Check | Value | Status |
+|:--:|-------|-------|:------:|
+| 1 | HTTP status | 200 | ✅ |
+| 2 | X-Frame-Options | DENY | ✅ |
+| 3 | Content-Security-Policy | memuat frame-ancestors 'none' | ✅ |
+| 4 | Console error (app) | (no error) | ✅ |
+| 5 | {cek UI: elemen visible/class/teks} | {...} | ✅ |
+
+**Screenshot:** `e2e/screenshots/{nama}.png`
+**Console (filter app-only):**
+```
+(no error)   ← atau copy-paste error verbatim jika FAIL
+```
+
+## Full Test Run Output
+```
+$ cd e2e && npx playwright test
+Running N tests using 1 worker
+  ✓ tests/security.spec.js:... (Xms)
+  ✓ tests/functional.spec.js:... (Xms)
+  ...
+N passed (Xs)
+```
+
+## Build Summary
+```
+Tests:     {N}
+Passed:    {count}
+Failed:    {count}
+Skipped:   {count}
+Duration:  {Xs}
+```
+```
+
+Aturan tambahan PHP:
+- **Screenshot wajib** untuk happy-path test (ambil via `page.screenshot()` ke `e2e/screenshots/`), lampirkan path-nya di evidence. Screenshot failure otomatis ada di `e2e/test-results/`.
+- **Console evidence**: tampilkan error console yang di-capture helper `collectConsoleErrors` — filter yang origin eksternal boleh di-catat terpisah dengan label "(toleransi eksternal)".
+- **Log file app**: jika app menulis log (mis. `csp_report_YYYYMMDD.log`), lampirkan isi log hasil test verbatim (atau `(no error)`), lalu hapus log test setelah evidence di-generate.
+- **Header response**: buktikan tiap security header yang di-assert dengan nilai aktual dari `curl -I` atau `res.headers()`.

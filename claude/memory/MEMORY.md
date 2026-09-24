@@ -6,3 +6,6 @@
 - [Matrix of Destiny — Mahendra Fajar](user_matrix_destiny.md) — Bacaan matriks 15 Apr 1999: arkana XV/IV/X/XI, misi hidup, personal year 2026-2028
 - [Repo ai-agent](reference_ai_agent_repo.md) — Backup agent/skill Claude Code+opencode di github.com/MyTechnoDev/ai-agent, struktur mirror + install.sh
 - [Backtest Trading Strategy](project_trading_backtest.md) — Data 5 trade awal, continuation rate 20%, full TP 1:1 menang matematis atas partial
+- [Skill Remotion Explainer](skill_remotion_explainer.md) — Agent `remotion-explainer` untuk generate video explainer sinematik Vox-style pakai Remotion
+- [Skill Viral Story Framework](skill_viral_story_framework.md) — Agent `viral-story-framework` untuk caption single-post storytelling formula "Unexpected Kindness Story"
+- [Skill Serial Hook Framework](skill_serial_hook_framework.md) — Agent `serial-hook-framework` untuk konten berseri/multi-part (micro-drama, edukasi, tutorial) pakai Zeigarnik effect

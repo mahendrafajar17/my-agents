@@ -1,18 +1,13 @@
----
-name: crd-gen
-description: Generate CRD.txt, CONFIG.md, VERSION.md, HOME.md, UAT-INDEX.md, TRD-INDEX.md, dan MONITORING-SHEET.txt (PB Timesheet + AI Efficiency Bofis, token/cost dari tokentracker CLI) untuk deployment JATIS Mobile. Format CRD SOP-compliant: CR REASON/JUSTIFICATION, PRE-IMPLEMENTATION (CR Target/Type/Product/Runtime/Branch Link/GitLab Doc/Wiki/SonarQube), LIBRARY CHANGES, IMPLEMENTATION, CONFIG UPDATE, FRESH INSTALL, FEATURE CHANGES, POST-IMPLEMENTATION (PID check + zero error logs), SUCCESS CRITERIA, ROLLBACK (verifikasi), MITIGATION PLAN, TROUBLESHOOTING. CONFIG: dokumentasi semua key config per section. VERSION/UAT-INDEX/TRD-INDEX: halaman indeks lintas versi yang link ke file di masing-masing folder PB.
----
-
 # Skill: crd-gen
 
 ## When to Use
-Use this skill when the user asks to create a CRD.txt for a PB (Project Brief) in JATIS Mobile projects. The CRD is the deployment guide for production operations team, dan akan di-review otomatis (DeepSeek AI) terhadap Developer SOP — lihat daftar mandatory item di Step 5.
+Use this skill when the user asks to create a CRD.txt for a PB (Project Brief) in JATIS Mobile projects. The CRD is the deployment guide for production operations team.
 
 ## Prerequisites
 - Git repository with committed changes
-- Go atau Maven-based Java project
-- Existing `doc/` atau `docs/<PB-folder>/` directory (ikuti konvensi repo; Go project ini pakai `docs/`)
-- App version dari Makefile/pom.xml
+- Maven-based Java project (typically)
+- Existing `doc/<PB-folder>/` directory with UAT.md or E2E-EVIDENCE.md
+- Access to `pom.xml` for app version
 
 ---
 
@@ -21,11 +16,8 @@ Use this skill when the user asks to create a CRD.txt for a PB (Project Brief) i
 Run these commands to collect necessary data:
 
 ```bash
-# App version (Go: dari Makefile BINARY_NAME; Java: dari pom.xml)
-grep BINARY_NAME dev/Makefile 2>/dev/null || grep '<version>' dev/pom.xml | head -1
-
-# Runtime version (WAJIB untuk CRD — versi bahasa, bukan versi app)
-go version 2>/dev/null || grep '<java.version>' dev/pom.xml 2>/dev/null || cat dev/go.mod | head -1
+# App version
+grep '<version>' dev/pom.xml | head -1 | sed 's/.*<version>\(.*\)<\/version>.*/\1/'
 
 # Active branch
 git branch --show-current
@@ -37,13 +29,11 @@ git remote get-url origin
 git diff HEAD --stat
 
 # Full diff of source/config files
-git diff HEAD -- "*.conf" "*.properties" dev/internal/ dev/src/main/java/ dev/src/main/resources/
+git diff HEAD -- dev/pom.xml "*.conf" dev/src/main/java/ dev/src/main/resources/
 
 # Commit history
 git log --oneline -5
 ```
-
-**Catatan runtime version:** field "Application Version" di form CR mengikuti SOP = runtime/language (mis. `Go 1.25.0`, `Java 8`), SEDANGKAN versi app target (mis. `1.0.1`) ditulis di PRE-IMPLEMENTATION sebagai `App Version`. Jangan tertukar.
 
 ## Step 2: Read Existing Project Documentation
 
@@ -74,178 +64,104 @@ List `bin/` directory to identify:
 
 Create the file at `doc/<PB-folder>/CRD.txt` using the template below.
 
-**PENTING — Developer SOP Mandatory Items** (kalau ada yang hilang, CRD akan di-REJECT otomatis):
-
-| # | Mandatory Item | Keterangan |
-|---|---|---|
-| 1 | **CR Reason** | Harus menjelaskan justifikasi teknis/bisnis. DILARANG copy-paste judul PB (rejection trigger #1) |
-| 2 | **CR Target / CR Type / Product** | Application / Update-Modification / Jatis-Client |
-| 3 | **Runtime** | Tech stack runtime/language (Go 1.25.0, Java 8, dst), BUKAN versi app |
-| 4 | **Branch Link** | Link langsung ke branch di GitLab |
-| 5 | **GitLab Doc link** | Wajib — Test Scenario (UAT/E2E) — rejection jika hilang |
-| 6 | **GitLab Wiki links** | Wajib — Home + Version/Versioning |
-| 7 | **SonarQube URL** | Wajib untuk application update & unit test |
-| 8 | **TRD link** | Jika ada |
-| 9 | **Attachments** | FSD/TRD/Test Scenario. Untuk DB changes WAJIB attach SQL script |
-| 10 | **"Tidak ada perubahan pada library"** | Wajib disebut eksplisit, MESKIPUN tidak ada perubahan |
-| 11 | **"Tidak ada perubahan konfigurasi"** | Wajib disebut eksplisit, MESKIPUN tidak ada perubahan |
-| 12 | **PID file verification** | Post-implementation: `ls -l *.pid` / process status |
-| 13 | **Zero error logs** | Post-implementation: cek log utama TIDAK ada error sampai app fully running |
-| 14 | **Success criteria** | Harus mencakup regression (existing test pass) DAN fitur baru (routing/persistence) |
-| 15 | **Rollback verification** | Nyatakan binary lama tersedia + step verifikasi rollback sukses |
-| 16 | **Mitigation plan** | Tidak wajib tapi sangat disarankan |
-
 ### CRD.txt Template
 
 ```
 ====================================
-CR REASON / JUSTIFICATION
-====================================
-<Jelaskan akar masalah + justifikasi teknis/bisnis. Contoh:
-"Fix swapped msisdn/sender_id fields causing end2endmonitoring-engine
-correlation failure and null response_code, and add outbound dial prefix
-stripping to ensure correct number formatting.
-Justifikasi teknis:
-- <akar masalah 1 + dampak>
-- <akar masalah 2 + dampak>
-- Perubahan hanya di sisi aplikasi, TANPA mengubah routing/schema/library.">
-
-====================================
 PRE-IMPLEMENTATION PROCEDURE
 ====================================
-CR Target      : Application / DB / Network
-CR Type        : Update/Modification / New
-Product        : Jatis / Client
-Application    : <app-name>
-Runtime        : <Go X.Y / Java X / Node.js X>   <- versi runtime, BUKAN versi app
-App Version    : <target app version, e.g. 1.0.1>
-Server         : <server-name>
 Repository URL : <git-remote-url>
+TRD            : <git-blob-url-to-trd-md, or omit this line if no TRD exists>
+SonarQube URL  : (tidak ada / URL jika ada)
+App Version    : <version>
 Branch         : <branch-name>
-Branch Link    : <repo-url>/-/tree/<branch-name>
-SonarQube URL  : <sonar-dashboard-url> (tidak ada jika N/A)
-GitLab Doc     : <repo-url>/-/blob/<branch>/docs/<PB-folder>/UAT-<app>.md  <- Test Scenario (WAJIB — rejection jika hilang)
-GitLab Wiki    : <repo-url>/-/wikis/Home
-GitLab Wiki    : <repo-url>/-/wikis/Version (Versioning)
-TRD            : doc/<PB-folder>/<trd-file>.md (jika ada)
-
-Attachments:
-- TRD : doc/<PB-folder>/<trd-file>.md
-- Test Scenario : doc/<PB-folder>/UAT-<app>.md
-- E2E Evidence : doc/<PB-folder>/E2E-LOG-EVIDENCE.md
-- (DB changes WAJIB): <script>.sql
-
-====================================
-LIBRARY CHANGES
-====================================
-Tidak ada perubahan pada library (go.mod/pom.xml tidak berubah).
-ATAU: <daftar library yang ditambah/dihapus>
 
 ====================================
 IMPLEMENTATION PROCEDURE
 ====================================
-1. Build binary:
-   cd dev && make build-centos   (atau mvn package / gradle build)
+1. Stop service:
+   - Linux: ./DBExecutor.sh stop-all
+   - Windows: ctrl+c pada command prompt yang menjalankan start.bat
 
-2. Copy binary/jar baru ke server:
-   scp ../bin/<new-binary> <server>:<app-dir>/
+2. Backup file existing:
+   cp bin/<old-jar> bin/backup/<old-jar>.bak
+   cp bin/<config> bin/backup/<config>.bak
 
-3. Simpan binary lama di server (untuk rollback):
-   scp ../bin/<old-binary> <server>:<app-dir>/
+3. Copy <new-jar> ke bin/
 
-4. Set permission & ownership:
-   chmod +x <app-dir>/<new-binary>
-   chown <user>:<group> <app-dir>/<new-binary>
+4. Update <config> di bin/ sesuai CONFIGURATION UPDATE PROCEDURE di bawah
 
-5. Update <config> (lihat CONFIGURATION UPDATE PROCEDURE)
+5. Update startup script jika diperlukan:
+   - Linux (DBExecutor.sh): ubah variabel "app" ke <new-jar>
+   - Windows (start.bat): ubah nama JAR ke <new-jar>
 
-6. Update startup script:
-   ubah variabel "app" / nama JAR ke <new-binary>
+6. Start service:
+   - Linux: ./DBExecutor.sh start
+   - Windows: jalankan start.bat
 
-7. Stop service:
-   ./launcher.sh stop   (atau ./start.sh stop-all)
-
-8. Start service:
-   ./launcher.sh start
-
-9. Cek log: tail -f logs/<app>.log
-   → pastikan startup log normal (koneksi DB/MQ/prefix loaded, dsb.)
+7. Cek log: tail -f out-DBExecutor.log
 
 ====================================
 CONFIGURATION UPDATE PROCEDURE (v<old-version> -> v<new-version>)
 ====================================
-Tambahkan key berikut di <config>:
+Tambahkan property berikut di <config>:
 
-<key.path>: <value>
-  → <purpose/description>
-  → <fallback behavior / kapan dibutuhkan>
-
-Tidak ada perubahan konfigurasi lain selain yang disebutkan di atas.
+<list new properties with descriptions>
 
 ====================================
 FRESH INSTALLATION PROCEDURE
 ====================================
-<Full config template + step-by-step untuk fresh install>
+<Full config template for fresh install + step-by-step>
 
 ====================================
 FEATURE CHANGES v<new-version>
 ====================================
-<Detailed feature changes dari git diff + UAT.md. Grup: bug fix / new feature / config>
+<Detailed feature changes based on git diff and UAT.md>
 
 ====================================
 POST-IMPLEMENTATION PROCEDURE
 ====================================
-1. Cek service running & PID file ter-generate:
-   ps aux | grep <app>
-   ls -l <app-dir>/*.pid
-
-2. Cek log TIDAK ada error sampai app fully operational:
-   grep -i error <app-dir>/logs/<app>.log
-   (pastikan tidak ada output error; monitor sampai app stabil)
-
-3. Cek log spesifik fitur baru (jika ada):
-   grep "<expected-log-marker>" logs/<app>.log
-
-4. Test fungsional (korelasi/routing/persistence sesuai fitur)
-
-5. Cek monitoring endpoint (metrics/health) jika ada
+1. Cek log out-DBExecutor.log, pastikan tidak ada ERROR
+2. Cek koneksi MQ: pastikan log "Opening for sending/receiving" muncul
+3. Cek koneksi DB: pastikan log "connect to jdbc:..." muncul
+4. Kirim test message manual (opsional) untuk verifikasi full flow
+5. Cek monitoring alert (email) jika dikonfigurasi
 
 ====================================
 SUCCESS CRITERIA
 ====================================
-- [x] <fitur baru 1 terverifikasi> (e.g. msisdn/sender_id benar)
-- [x] <fitur baru 2 terverifikasi> (e.g. response_code terisi)
-- [x] Data persisten ke database (collection/table terisi)
-- [x] Internal/edge traffic tetap di-skip (tidak regression)
-- [x] Existing unit test pass
-- [x] SonarQube Quality Gate PASSED
+1. Service berjalan tanpa ERROR di log
+2. Koneksi MQ established (activemq/artemis)
+3. Koneksi JDBC ke MySQL established
+4. Full flow MQ → DB berhasil (INSERT query tereksekusi)
+5. Tidak ada regression pada fitur existing
 
 ====================================
 ROLLBACK PROCEDURE
 ====================================
-Prasyarat: binary lama <old-binary> (md5 <hash>) sudah tersedia di <app-dir>
-(disimpan saat implementasi step 3).
-
-1. Stop service: ./launcher.sh stop
-2. Ubah startup script kembali ke <old-binary>
-3. Start service: ./launcher.sh start
-4. Verifikasi rollback sukses:
-   ps aux | grep <app>   → pastikan proses berjalan dengan <old-binary>
-   tail -f logs/<app>.log → pastikan app running normal
-
-====================================
-MITIGATION PLAN
-====================================
-1. <Skenario gagal 1> → <mitigasi + pemantauan>
-2. <Skenario gagal 2> → <mitigasi + eskalasi>
-3. Runtime error setelah deploy → rollback cepat via startup script (binary lama tersedia)
-4. <Config salah / collection kosong> → <fallback aman + perbaikan>
+1. Stop service: ./DBExecutor.sh stop-all
+2. Kembalikan <config> dari backup:
+   cp bin/backup/<config>.bak bin/<config>
+3. Kembalikan JAR dari backup atau copy <old-jar>:
+   cp bin/backup/<old-jar> bin/<old-jar>
+4. Kembalikan startup script ke versi sebelumnya
+5. Start service: ./DBExecutor.sh start
 
 ====================================
 TROUBLESHOOTING GUIDE
 ====================================
 <Common issues and solutions based on component changes>
 ```
+
+### Rules
+- PRE-IMPLEMENTATION PROCEDURE must contain **only** these 5 fields, in this order: Repository URL,
+  TRD, SonarQube URL, App Version, Branch. Omit the TRD line entirely if no TRD exists for the
+  project.
+- Do **not** add PB/PMD Number, PB/PMD Name, Project name, Owner, Tech Lead, Developer, target
+  Server, or a notification/email list to PRE-IMPLEMENTATION PROCEDURE — even if that data is
+  available (e.g. pasted from a Bofis PB/PMD form). That metadata belongs in Bofis/PB tracking, not
+  in the CRD's pre-implementation block, which is a deployment-ops checklist, not a project-tracking
+  summary.
 
 ## Step 5b: Generate VERSION.md
 
@@ -320,15 +236,15 @@ Create the file at `doc/<PB-folder>/HOME.md` as the project landing page / onboa
 
 <One-liner description of what the service does>
 
-**Latest: v<X.Y.Z>** (<DD Mon YYYY>) — <satu baris ringkasan perubahan versi terbaru>. Detail: [PB<nomor> docs](<repo-url>/-/tree/<branch>/docs/<PB-folder>)
-
 # Docs
 
 - [SonarQube](<sonarqube-dashboard-url>)
-- [TRD](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/TRD) (section 3 — Database, section 4.8 — <app>)
-- [UAT](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/UAT)
 - [Config](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/Config)
 - [Version](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/Version)
+- [UAT](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/UAT)
+- [E2E Log Evidence](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/E2E-Log-Evidence)
+- [CRD](https://git-rbi.jatismobile.com/<repo-path>/-/wikis/CRD)
+- [TRD](https://git-rbi.jatismobile.com/<repo-path>/-/blob/<branch>/doc/<PB-folder>/trd-<pb-name>.md)
 
 ## Requirements
 
@@ -429,48 +345,16 @@ docker run -d --name <container-name> -v "$(pwd)"/logs:/app/logs <image-name>:<v
 ### Rules
 - Title: project name exactly as in git
 - Description: one line — what the service consumes, what it produces
-- Tambah baris **Latest: vX.Y.Z (date)** tepat di bawah description — satu baris ringkasan versi terbaru + link ke folder PB docs di repo (tree/blob)
-- Docs section SEMUA ngarah ke halaman WIKI: TRD → `/-/wikis/TRD`, UAT → `/-/wikis/UAT`, Config → `/-/wikis/Config`, Version → `/-/wikis/Version`; SonarQube → URL dashboard eksternal
-- JANGAN buat link wiki untuk halaman yang TIDAK ada (mis. E2E Log Evidence, CRD) — link broken di halaman Home itu masalah review; hapus link yang halamannya tidak exist
-- Nama halaman wiki standar: `Config`, `Home`, `TRD`, `UAT`, `Version` (file `.md` datar di repo wiki)
+- Docs section: **every entry except TRD must be a GitLab wiki link** —
+  `https://git-rbi.jatismobile.com/<repo-path>/-/wikis/<PageName>` (no `.md` extension, no relative
+  file path). This applies to Config, Version, UAT, E2E Log Evidence, CRD, and any other doc mirrored
+  to the wiki. **TRD is the one exception**: it stays as a direct git blob link
+  (`.../-/blob/<branch>/doc/<PB-folder>/trd-<pb-name>.md`) since the TRD is not mirrored to the wiki.
+  Never link any Docs entry to a relative in-repo path (e.g. `CONFIG.md`, `UAT-x.md`) — always the
+  full wiki URL.
 - Data Example: show real request + response payload
 - Commands: all in bash code blocks, use actual project paths
 - Deployment: include both binary and Docker methods if applicable
-
----
-
-## Step 5d2: Push ke GitLab Wiki
-
-Setelah CRD/CONFIG/VERSION/HOME/UAT-INDEX/TRD-INDEX di-generate, mirror ke GitLab Wiki:
-
-- Wiki adalah git repo terpisah: `<repo-url>.wiki.git` (mis. `https://git-rbi.jatismobile.com/<group>/<project>.wiki.git`)
-- Halaman = file `.md` datar di root: `Home.md`, `Version.md`, `Config.md`, `UAT.md`, `TRD.md`
-- Workflow: clone wiki ke temp → update file → commit → push
-
-```bash
-git clone <repo-url>.wiki.git /tmp/<app>-wiki
-cd /tmp/<app>-wiki
-# update halaman... lalu:
-git add -A && git commit -m "docs: update wiki vX.Y.Z" && git push origin main
-```
-
-**ATURAN PENTING — link dari wiki ke file repo:**
-- Link ke file di repo WAJIB pakai **full URL blob + branch**, BUKAN relative link:
-  `https://git-rbi.jatismobile.com/<repo>/-/blob/<branch>/docs/<PB-folder>/<file>.md`
-- Relative link (mis. `(docs/.../file.md)`) akan resolve ke HALAMAN WIKI (tidak ada) → link rusak. Ini kesalahan umum.
-
-**Konvensi per halaman wiki:**
-
-| Halaman | Isi |
-|---|---|
-| `Home.md` | Mirror HOME.md: description + **Latest pointer** + Docs. Docs section: SonarQube (URL eksternal), **TRD (label "TRD", link ke halaman wiki `TRD`)**, **UAT (label "UAT", link ke halaman wiki `UAT` — bukan "UAT Index", bukan blob URL)**, Config → `/-/wikis/Config`, Version → `/-/wikis/Version`. **JANGAN referensi CRD** dan JANGAN link ke halaman wiki yang tidak ada. Tambahkan halaman spesifik project (mis. SIP Type Values untuk app SIP) HANYA jika project-nya memilikinya |
-| `Version.md` | Append entry `## vX.Y.Z (DD Mon YYYY):` di atas (format sama dengan VERSION.md repo) |
-| `TRD.md` | Heading per versi (`## vX.Y.Z (DD Mon YYYY):`), bullet link ke file TRD di folder PB masing-masing via **repo blob URL** (BUKAN bare filename — bare link = broken) |
-| `UAT.md` | KELOMPOKKAN per versi — heading `## vX.Y.Z (DD Mon YYYY)` lalu bullet artefak (UAT + E2E evidence) link repo blob ke folder PB masing-masing |
-| `Config.md` | Mirror CONFIG.md (semua key versi terbaru) |
-| Halaman opsional spesifik project (mis. `SIP-TYPE-VALUES.md` untuk app SIP) | Update jika ada — JANGAN dibuat kalau project tidak memilikinya |
-
-**Perhatikan:** branch untuk tiap versi berbeda (mis. v1.0.1 di `fix/PB...`, v1.0.0 di `feat/PB...`). Cek branch yang benar via `git ls-remote --heads origin` sebelum menyusun blob URL.
 
 ---
 
@@ -495,7 +379,6 @@ Create the file at `doc/<PB-folder>/UAT-INDEX.md` as the UAT artifact index page
 - Artifacts: drawio (flowchart), xlsx (UAT evidence), pdf, UAT.md, E2E-EVIDENCE.md
 - Link directly to the file in the respective PB folder on the repo
 - Append new entries at the top, keep older versions below
-- Di wiki (UAT.md): KELOMPOKKAN per versi — `## vX.Y.Z — DD Mon YYYY` sebagai heading, bullet artefak di bawahnya, link repo blob URL absolut
 
 ---
 
@@ -999,4 +882,7 @@ Column layouts below are CONFIRMED against the real sheets (verified 2026-08-13,
 This skill is based on the CRD format used across JATIS Mobile projects. See feedback from Claude memory at `~/.claude/projects/*/memory/feedback_crd_generation.md`.
 
 **Contoh format CRD.txt (Go project):**
-- `CRD-example.txt` — contoh nyata CRD untuk costermsginconverter v1.4.0
+- `~/.claude/docs/CRD-example.txt` — contoh nyata CRD untuk costermsginconverter v1.4.0
+- `~/.claude/docs/MONITORING-SHEET-example.txt` — contoh nyata gabungan Sheet 1 (PB Timesheet) + Sheet 2
+  (AI Efficiency) untuk end2end_monitoring_engine PB1124271926002213YA, termasuk cara memakai
+  `tokentracker` CLI untuk data token/cost asli.
