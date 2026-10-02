@@ -88,6 +88,8 @@ DB only — backend jalan lokal dengan `air`. Port db expose langsung ke host (m
 ### docker-compose.prod.yml
 Services: `db` (postgres:16-alpine) + `backend`. Port db expose ke `127.0.0.1` saja. Backend `depends_on` db dengan healthcheck. Gunakan named volumes untuk data db dan storage app. Network terisolasi.
 
+**Image di-build di LOKAL, bukan di server.** Service `backend`/`frontend` memakai `image: <project>-backend` / `<project>-frontend` dengan `pull_policy: never` dan **tanpa blok `build:`**, agar `docker compose up` di server tidak pernah mengompilasi apa pun. Untuk uji lokal (`make prod-up`) sediakan override terpisah `docker-compose.build.yml` yang berisi blok `build:`.
+
 ### <domain>.conf (Nginx)
 Format Certbot-managed. Reverse proxy semua traffic ke backend. Sertakan:
 - `client_max_body_size` sesuai kebutuhan
@@ -96,19 +98,23 @@ Format Certbot-managed. Reverse proxy semua traffic ke backend. Sertakan:
 - HTTP → HTTPS redirect block terpisah
 
 ### deploy.sh
-SSH-based deploy dengan rsync ke remote server. Gunakan `SSH ControlMaster` untuk efisiensi. Struktur fungsi:
-- `preflight_checks` — cek rsync, test SSH
-- `sync_files` — rsync dengan exclude `.git`, `.env`, `tmp/`, `logs/`
+SSH-based deploy: **build image di lokal, transfer ke server** (pola `loketin`/`smartagp`). **DILARANG** menjalankan `docker build`, `docker compose --build`, `go build`, atau `npm run build` di server; server produksi sering kecil (mis. `utih`: 1.9GB RAM tanpa swap) dan build di sana pernah membuat server hang serta mematikan layanan lain. Gunakan `SSH ControlMaster` untuk efisiensi. Struktur fungsi:
+- `preflight_checks` — cek rsync + docker lokal, test SSH
+- `sync_files` — rsync source/config dengan exclude `.git`, `.env`, `node_modules`, `dist`, `tmp/`, `logs/`, `data/`
 - `setup_env` — copy `.env.example` → `.env` jika belum ada, set `ENV=production`
 - `setup_nginx` — scp conf ke `/etc/nginx/sites-available/`, symlink, `nginx -t`, reload
-- `run_docker` — support flag `--backend` dan `--sync-only`
+- `build_and_transfer_backend` / `build_and_transfer_frontend` — **lokal**: `docker build --platform linux/amd64 --target production -t <project>-backend ./backend`, lalu `docker save <image> | gzip | ssh <host> docker load`. Agar tidak lambat via emulasi, stage `builder` memakai `FROM --platform=$BUILDPLATFORM` dan cross-compile (`GOOS=$TARGETOS GOARCH=$TARGETARCH`); hanya stage `production` yang bertarget amd64
+- `run_docker` — di server hanya `docker compose -f docker-compose.prod.yml up -d --force-recreate [service]`; support `--backend`, `--frontend`, `--sync-only`
 - `run_migrations` — jalankan semua `migrations/*.sql` via `docker compose exec -T db psql`
 - `verify_deployment` — cek `docker compose ps` + curl `/health`
 
 Flag yang didukung:
-- `./deploy.sh` — deploy + rebuild semua
-- `./deploy.sh --backend` — rebuild backend saja
+- `./deploy.sh` — deploy + build & transfer semua
+- `./deploy.sh --backend` — build & transfer backend saja
+- `./deploy.sh --frontend` — build & transfer frontend saja
 - `./deploy.sh --sync-only` — sync files tanpa rebuild
+
+**Pengaman wajib sebelum aksi berat di server bersama:** cek `MemAvailable` dan jangan lanjut bila < ~500MB; hentikan aksi lebih awal, jangan menunggu memori mendekati habis. Memutus SSH tidak membatalkan proses di server, jadi hentikan dengan membunuh prosesnya di server.
 
 **Config default** (sesuaikan per project):
 - SSH host: `oyen`

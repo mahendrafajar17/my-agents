@@ -50,6 +50,7 @@ Sama daftar dasar seperti Claude Code (`go-wacall`, `fullstack-mahen`, `ide-kont
 | `rab_structure` | Claude Code | Struktur RAB proyek |
 | `infrastructure_cost` | Claude Code | Biaya infrastruktur standar |
 | `pilih-topik-tren` | Claude Code | Pilih topik Bunda Kirana dari tren TikTok (syarat kontroversi; tren = hook/topik); butuh repo ai-influencer |
+| `fullstack-mahen-e2e-reference` | Claude Code | Referensi E2E (Playwright/Detox, layanan eksternal palsu) untuk project fullstack-mahen |
 | `crd-gen` | OpenCode | Generate CRD.txt, CONFIG.md, VERSION.md untuk deployment |
 | `e2e-gen` | OpenCode | Generate E2E test automation + UAT docs |
 | `sonarqube-gate` | OpenCode | Autonomous SonarQube Quality Gate fix |
