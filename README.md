@@ -9,7 +9,7 @@ my-agents/
 ├── claude/          # Agents, commands, skills, memory untuk Claude Code
 │   ├── agents/      # mirror ~/.claude/agents
 │   ├── commands/    # mirror ~/.claude/commands
-│   ├── skills/      # mirror ~/.claude/skills (flat .md, tanpa frontmatter)
+│   ├── skills/      # mirror ~/.claude/skills (flat .md + folder per-skill dengan SKILL.md)
 │   └── memory/      # mirror auto-memory Claude Code (MEMORY.md + file per topik)
 ├── opencode/        # Agents & skills untuk OpenCode
 │   ├── agents/      # mirror ~/.config/opencode/agents
@@ -49,6 +49,7 @@ Sama daftar dasar seperti Claude Code (`go-wacall`, `fullstack-mahen`, `ide-kont
 | `pricing_rules` | Claude Code | Aturan pricing komersial |
 | `rab_structure` | Claude Code | Struktur RAB proyek |
 | `infrastructure_cost` | Claude Code | Biaya infrastruktur standar |
+| `pilih-topik-tren` | Claude Code | Pilih topik Bunda Kirana dari tren TikTok (syarat kontroversi; tren = hook/topik); butuh repo ai-influencer |
 | `crd-gen` | OpenCode | Generate CRD.txt, CONFIG.md, VERSION.md untuk deployment |
 | `e2e-gen` | OpenCode | Generate E2E test automation + UAT docs |
 | `sonarqube-gate` | OpenCode | Autonomous SonarQube Quality Gate fix |
@@ -70,6 +71,7 @@ Sama daftar dasar seperti Claude Code (`go-wacall`, `fullstack-mahen`, `ide-kont
 cp ~/.claude/agents/*.md claude/agents/
 cp ~/.claude/commands/*.md claude/commands/
 cp ~/.claude/skills/*.md claude/skills/
+cp -r ~/.claude/skills/pilih-topik-tren claude/skills/
 cp ~/.claude/projects/-Users-mahendrafajar/memory/*.md claude/memory/
 
 # OpenCode -> repo
