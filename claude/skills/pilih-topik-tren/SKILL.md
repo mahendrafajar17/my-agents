@@ -15,6 +15,18 @@ Jawab dalam bahasa Indonesia, singkat, jujur.
    - **Hook**: tren hanya pengait 1-2 detik pertama (emosi/situasinya, bukan orangnya), isi video tentang parenting.
    - **Topik**: tren itu sendiri adalah bahan bahasan parenting (mis. tontonan viral -> tontonan anak).
 3. Ada sudut parenting/MPASI yang nyata. Tren tanpa sudut itu dibuang, jangan dipaksakan.
+4. **Lolos 3 pertanyaan penyaring** (jawab ya/tidak per topik, buang yang ada tidak): orang tua peduli? Bisa beda pendapat? Punya pengalaman pribadi tentang ini?
+   Rumus gesekan: relevan + beda pendapat + emosi + mudah dikomentari.
+
+## Komposisi set: 70% evergreen, 20% tren, 10% eksperimen
+Tren sebagai kendaraan, masalah orang tua sebagai isi. Hook tren basi dalam 2-3 hari, set evergreen (mis. "anak dibiarkan menang atau diajari kalah?")
+tetap bisa diunggah kapan saja. Cek `docs/ide-konten-*.md` dan `docs/captions/` untuk set terakhir: kalau 3 set terakhir semuanya berbasis tren,
+usulkan SATU set evergreen (hook tidak bergantung berita) sebagai rekomendasi atau alternatif. Eksperimen (sekitar 1 dari 10): hook **pernyataan lawan arus**
+yang menyenggol kebiasaan, bukan orang (mis. "Anak yang selalu dibela justru lebih rapuh"), bukan hanya hook pertanyaan "boleh gak?".
+
+**Rage bait dan engagement bait BOLEH** (keputusan user 2026-10-03): hook boleh sengaja menyenggol, memancing perdebatan atau reaksi kuat,
+dan mengajak komentar/bagikan. Yang tetap berlaku hanya "Batas keras" di bawah (topik sensitif, tidak menyerang orang/nama, klaim kesehatan dicek ke sumber).
+Sebut di usulan kalau hook-nya masuk kategori ini, beserta risikonya.
 
 ## Batas keras (kontroversi boleh, ini tidak)
 Dari CLAUDE.md "Aturan konten": buang topik yang berisi
